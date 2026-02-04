@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>three.js css3d - periodic table</title>
+		<title>Webpage</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="main.css">
@@ -42,6 +42,26 @@
 			box-shadow: 0 10px 30px rgba(0,0,0,0.15);
 			color: #555
 			}
+			
+			#legal{
+			position: fixed;
+			top: 12px;
+			right: 16px;
+			z-index: 10000;
+			font-family: Arial, sans-serif;
+			font-size: 12px;
+			}
+			#legal a{ color:#333; text-decoration: underline; }
+			
+			#appPurpose{
+				max-width: 420px;
+				margin: 10px auto 0;
+				color: #444;
+				font-size: 14px;
+				line-height: 1.4;
+				text-align: center;
+			}
+
 
 			.element {
 			width: 120px;
@@ -132,6 +152,11 @@
 			data-size="large">
 			</div>
 		</div>
+		<p id="appPurpose">
+			This is a 3D visualization demo that loads a roster from Google Sheets and displays
+			each person as a card with photo and color-coded net worth.
+		</p>
+
 		</div>
 
 		<div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> css3d - periodic table.</div>
@@ -142,6 +167,13 @@
 			<button id="helix">HELIX</button>
 			<button id="grid">GRID</button>
 		</div>
+		
+		<div id="legal">
+			<a href="./privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+			<span> · </span>
+			<a href="./terms.html" target="_blank" rel="noopener">Terms</a>
+		</div>
+
 		
 		<script type="importmap">
 			{
