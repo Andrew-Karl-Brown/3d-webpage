@@ -131,7 +131,7 @@
   border-radius: 14px;
   border: 1px solid rgba(127,255,255,0.35);
   box-shadow: 0 0 12px rgba(0,255,255,0.25);
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.06);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -159,9 +159,9 @@
 }
 
 
-.net-low  { background: rgba(  0,255,255,0.25); }
-.net-mid  { background: rgba(255,255,  0,0.25); }
-.net-high { background: rgba(255,  0,255,0.25); }
+.net-low  { background: rgba(231,  76,  60, 0.35); border-color: rgba(231,76,60,0.9); }
+.net-mid  { background: rgba(243, 156,  18, 0.35); border-color: rgba(243,156,18,0.9); }
+.net-high { background: rgba( 46, 204, 113, 0.35); border-color: rgba(46,204,113,0.9); }
 
   </style>
 
@@ -451,80 +451,68 @@
 
 				// table
 
-				for ( let i = 0; i < tableData.length; i += 5 ) {
+				const cellX = 220;
+				const cellY = 260;
 
-					const element = document.createElement( 'div' );
-					element.className = 'element';
-					const rowIndex = (i / 5) + 1;
-					const rawWorth = (sheetRows[rowIndex]?.[5] ?? "").toString();
-					const netWorth = Number(rawWorth.replace(/[^\d.]/g, "")) || 0;
+				let maxCol = 1, maxRow = 1;
+				for (let j = 0; j < tableData.length; j += 5) {
+				maxCol = Math.max(maxCol, Number(tableData[j + 3]) || 1);
+				maxRow = Math.max(maxRow, Number(tableData[j + 4]) || 1);
+				}
 
+				const xOffset = ((maxCol + 1) * cellX) / 2;
+				const yOffset = ((maxRow + 1) * cellY) / 2;
 
-					if (netWorth < 100000) {
+				for (let i = 0; i < tableData.length; i += 5) {
+
+				const element = document.createElement('div');
+				element.className = 'element';
+
+				const rowIndex = (i / 5) + 1; 
+				const rawWorth = (sheetRows[rowIndex]?.[5] ?? "").toString();
+				const netWorth = Number(rawWorth.replace(/[^\d.]/g, "")) || 0;
+
+				if (netWorth < 100000) {
 					element.classList.add("net-low");
-					} else if (netWorth < 200000) {
+				} else if (netWorth < 1000000) {
 					element.classList.add("net-mid");
-					} else {
+				} else {
 					element.classList.add("net-high");
-					}
+				}
 
-					const photoUrl = (sheetRows[rowIndex]?.[1] ?? "").toString().trim();
-
-					if (photoUrl) {
+				const photoUrl = (sheetRows[rowIndex]?.[1] ?? "").toString().trim();
+				if (photoUrl) {
 					const img = document.createElement("img");
 					img.className = "photo";
 					img.src = photoUrl;
-					img.alt = "photo";
 					img.loading = "lazy";
-					img.referrerPolicy = "no-referrer"; // helps with some hosts
-					img.onerror = () => img.remove();   // hide broken images
+					img.referrerPolicy = "no-referrer";
+					img.onerror = () => img.remove();
 					element.appendChild(img);
-					}
-					
-					const name = document.createElement("div");
-					name.className = "name";
-					name.textContent = (sheetRows[rowIndex]?.[0] ?? "").toString(); // column A name
-					element.appendChild(name);
+				}
 
-					
-					/*element.style.backgroundColor = 'rgba(0,127,127,' + ( Math.random() * 0.5 + 0.25 ) + ')';*/
+				const name = document.createElement("div");
+				name.className = "name";
+				name.textContent = (sheetRows[rowIndex]?.[0] ?? "").toString();
+				element.appendChild(name);
 
-					/*const number = document.createElement( 'div' );
-					number.className = 'number';
-					number.textContent = ( i / 5 ) + 1;
-					element.appendChild( number );*/
+				const objectCSS = new CSS3DObject(element);
+				objectCSS.position.x = Math.random() * 4000 - 2000;
+				objectCSS.position.y = Math.random() * 4000 - 2000;
+				objectCSS.position.z = Math.random() * 4000 - 2000;
+				scene.add(objectCSS);
+				objects.push(objectCSS);
 
-					/*const symbol = document.createElement( 'div' );
-					symbol.className = 'symbol';
-					symbol.textContent = tableData[ i ];
-					element.appendChild( symbol );*/
+				const object = new THREE.Object3D();
+				const col = Number(tableData[i + 3]) || 1;
+				const row = Number(tableData[i + 4]) || 1;
 
-					/*const details = document.createElement( 'div' );
-					details.className = 'details';
-					details.innerHTML = tableData[ i + 1 ] + '<br>' + tableData[ i + 2 ];
-					element.appendChild( details );*/
+				object.position.x = (col * cellX) - xOffset;
+				object.position.y = -((row * cellY) - yOffset);
 
-					const objectCSS = new CSS3DObject( element );
-					objectCSS.position.x = Math.random() * 4000 - 2000;
-					objectCSS.position.y = Math.random() * 4000 - 2000;
-					objectCSS.position.z = Math.random() * 4000 - 2000;
-					scene.add( objectCSS );
+				targets.table.push(object);
+				}
 
-					objects.push( objectCSS );
-
-					//
-
-					const object = new THREE.Object3D();
-					const cellX = 220;
-					const cellY = 260;
-
-					const col = Number(tableData[i + 3]) || 1;
-					const row = Number(tableData[i + 4]) || 1;
-
-					object.position.x = (col * cellX) - 1000;
-					object.position.y = -(row * cellY) + 800;
-
-					targets.table.push(object);
 
 
 				}
