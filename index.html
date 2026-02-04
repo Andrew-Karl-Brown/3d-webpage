@@ -113,17 +113,48 @@
       background: rgba(0,255,255,0.4);
       color: #000;
     }
+	.element{
+  width: 140px;
+  height: 180px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid rgba(127,255,255,0.35);
+  box-shadow: 0 0 12px rgba(0,255,255,0.25);
+  background: rgba(0,127,127,0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.element img.photo{
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.65);
+  margin-bottom: 10px;
+}
+
+.element .name{
+  color: rgba(255,255,255,0.9);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* your net worth color coding */
+.net-low  { background: rgba(  0,127,127,0.45); }
+.net-mid  { background: rgba( 80, 80,200,0.45); }
+.net-high { background: rgba(200, 80, 80,0.45); }
+
   </style>
 
-  <!-- THREE.JS IMPORT MAP -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "./build/three.module.js",
-      "three/addons/": "./jsm/"
-    }
-  }
-  </script>
 </head>
 
 <body>
@@ -163,25 +194,6 @@
     <button id="grid">GRID</button>
   </div>
 
-  <!-- MAIN SCRIPT -->
-  <script type="module">
-    import * as THREE from 'three';
-    import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
-    import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
-    import TWEEN from 'three/addons/libs/tween.module.js';
-
-    // TODO: your existing Sheets + three.js logic stays here
-    // IMPORTANT: do NOT put app elements inside loginbody
-
-    window.handleCredentialResponse = async (response) => {
-      console.log("Logged in");
-      document.getElementById('loginbody').style.display = 'none';
-
-      // Start your app AFTER login
-      if (typeof init === 'function') init();
-      if (typeof animate === 'function') animate();
-    };
-  </script>
 
 </body>
 
