@@ -8,7 +8,17 @@
   <!-- Google Sign-In -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <!-- Styles -->
+
+  
+  <script type="importmap">
+		{
+			"imports": {
+				"three": "./build/three.module.js",
+				"three/addons/": "./jsm/"
+			}
+		}
+		</script>
+  
   <style>
     html, body {
       margin: 0;
@@ -113,51 +123,45 @@
       background: rgba(0,255,255,0.4);
       color: #000;
     }
-	.element {
+	.element{
   width: 160px;
   height: 200px;
   box-sizing: border-box;
-
-  background: rgba(0, 127, 127, 0.55);
+  overflow: hidden;
   border-radius: 14px;
-  border: 1px solid rgba(127,255,255,0.4);
-  box-shadow: 0 0 12px rgba(0,255,255,0.35);
-
+  border: 1px solid rgba(127,255,255,0.35);
+  box-shadow: 0 0 12px rgba(0,255,255,0.25);
+  background: rgba(255,255,255,0.08);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-
   padding: 10px;
 }
-
-
 .element img.photo{
   width: 120px;
   height: 120px;
   object-fit: cover;
-
-  border-radius: 10px;
-  border: 2px solid rgba(255,255,255,0.8);
-
-  margin-bottom: 8px;
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.65);
+  margin-top: 4px;
+  margin-bottom: 10px;
 }
-
 .element .name{
-  color: rgba(255,255,255,0.9);
+  width: 100%;
+  text-align: center;
   font-size: 14px;
   font-weight: 600;
-  text-align: center;
-  width: 100%;
+  color: rgba(255,255,255,0.95);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* your net worth color coding */
-.net-low  { background: rgba(  0,127,127,0.45); }
-.net-mid  { background: rgba( 80, 80,200,0.45); }
-.net-high { background: rgba(200, 80, 80,0.45); }
+
+.net-low  { background: rgba(  0,255,255,0.25); }
+.net-mid  { background: rgba(255,255,  0,0.25); }
+.net-high { background: rgba(255,  0,255,0.25); }
 
   </style>
 
@@ -202,17 +206,6 @@
 
 
 </body>
-
-
-		
-		<script type="importmap">
-			{
-				"imports": {
-					"three": "./build/three.module.js",
-					"three/addons/": "./jsm/"
-				}
-			}
-		</script>
 
 
 		<script>
@@ -522,10 +515,17 @@
 					//
 
 					const object = new THREE.Object3D();
-					object.position.x = ( tableData[ i + 3 ] * 140 ) - 1330;
-					object.position.y = - ( tableData[ i + 4 ] * 180 ) + 990;
+					const cellX = 220;
+					const cellY = 260;
 
-					targets.table.push( object );
+					const col = Number(tableData[i + 3]) || 1;
+					const row = Number(tableData[i + 4]) || 1;
+
+					object.position.x = (col * cellX) - 1000;
+					object.position.y = -(row * cellY) + 800;
+
+					targets.table.push(object);
+
 
 				}
 
@@ -705,7 +705,8 @@
 			}
 
 		</script>
-		
+	
+
 		<div id="appFooter">
 		<div id="appName">Webpage</div>
 		<div id="appPurpose">
@@ -713,7 +714,5 @@
 			and displays each person as a card with photo and color-coded net worth.
 		</div>
 		</div>
-
-		
 	</body>
 </html>
