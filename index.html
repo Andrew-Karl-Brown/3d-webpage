@@ -123,21 +123,19 @@
       background: rgba(0,255,255,0.4);
       color: #000;
     }
-	.element{
+	.element {
   width: 160px;
   height: 200px;
-  box-sizing: border-box;
-  overflow: hidden;
   border-radius: 14px;
-  border: 1px solid rgba(127,255,255,0.35);
-  box-shadow: 0 0 12px rgba(0,255,255,0.25);
-  background: rgba(255,255,255,0.06);
+  box-sizing: border-box;
+  padding: 10px;
+  background: #111;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 10px;
 }
+
 .element img.photo{
   width: 120px;
   height: 120px;
@@ -159,10 +157,20 @@
 }
 
 
-.net-low  { background: rgba( 46, 204, 113, 0.35); border-color: rgba(46,204,113,0.9); }
-.net-mid  { background: rgba(243, 156,  18, 0.35); border-color: rgba(243,156,18,0.9); }
-.net-high { background: rgba(231,  76,  60, 0.35); border-color: rgba(231,76,60,0.9); }
+.net-low {
+  background: linear-gradient(180deg, #8b0000, #ff3b3b);
+  border: 2px solid #ff6b6b;
+}
 
+.net-mid {
+  background: linear-gradient(180deg, #8a4b00, #ff9800);
+  border: 2px solid #ffc107;
+}
+
+.net-high {
+  background: linear-gradient(180deg, #0b4f1a, #2ecc71);
+  border: 2px solid #6dff9c;
+}
   </style>
 
 </head>
