@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Webpage</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Google Sign-In -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+
+  
+  <script type="importmap">
+		{
+			"imports": {
+				"three": "./build/three.module.js",
+				"three/addons/": "./jsm/"
+			}
+		}
+		</script>
+  
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+      font-family: Helvetica, Arial, sans-serif;
+    }
+
+    /* ---------- LOGIN OVERLAY ---------- */
+    #loginbody {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    #loginCard {
+      background: #fff;
+      padding: 40px 50px;
+      border-radius: 14px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+      width: 360px;
+    }
+
+    #appTitle {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    #loginCard h1 {
+      margin: 10px 0;
+      font-size: 26px;
+    }
+
+    #loginCard h2 {
+      margin: 0 0 20px;
+      font-size: 14px;
+      font-weight: normal;
+      color: #666;
+    }
+
+    /* ---------- LEGAL LINKS ---------- */
+    #legal {
+      position: fixed;
+      top: 12px;
+      right: 16px;
+      font-size: 12px;
+      z-index: 10;
+    }
+
+    #legal a {
+      color: #555;
+      text-decoration: none;
+      margin-left: 10px;
+    }
+
+    #legal a:hover {
+      text-decoration: underline;
+    }
+
+    /* ---------- THREE.JS UI ---------- */
+    #info {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      text-align: center;
+      color: #8ff;
+      z-index: 1;
+    }
+
+    #container {
+      position: absolute;
+      inset: 0;
+    }
+
+    #menu {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      text-align: center;
+      z-index: 1;
+    }
+
+    button {
+      background: transparent;
+      border: 1px solid rgba(127,255,255,0.75);
+      color: rgba(127,255,255,0.75);
+      padding: 6px 12px;
+      margin: 0 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: rgba(0,255,255,0.4);
+      color: #000;
+    }
+	.element{
+  width: 160px;
+  height: 200px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(127,255,255,0.35);
+  box-shadow: 0 0 12px rgba(0,255,255,0.25);
+  background: rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 10px;
+}
+.element img.photo{
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.65);
+  margin-top: 4px;
+  margin-bottom: 10px;
+}
+.element .name{
+  width: 100%;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+.net-low  { background: rgba(231,  76,  60, 0.35); border-color: rgba(231,76,60,0.9); }
+.net-mid  { background: rgba(243, 156,  18, 0.35); border-color: rgba(243,156,18,0.9); }
+.net-high { background: rgba( 46, 204, 113, 0.35); border-color: rgba(46,204,113,0.9); }
+
+  </style>
+
+</head>
+
+<body>
+
+  <!-- Legal -->
+  <div id="legal">
+    <a href="./privacy.html" target="_blank">Privacy Policy</a>
+    <a href="./terms.html" target="_blank">Terms</a>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="loginbody">
+    <div id="loginCard">
+      <div id="appTitle">Webpage</div>
+      <h1>Welcome</h1>
+      <h2>Sign In With Google</h2>
+
+      <div id="g_id_onload"
+           data-client_id="804477416877-0mgki4o7fifivkt7bff8nbsp4asdfpjb.apps.googleusercontent.com"
+           data-callback="handleCredentialResponse">
+      </div>
+
+      <div class="g_id_signin"
+           data-type="standard"
+           data-size="large">
+      </div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="info">3D Visualization Demo</div>
+  <div id="container"></div>
+  <div id="menu">
+    <button id="table">TABLE</button>
+    <button id="sphere">SPHERE</button>
+    <button id="helix">HELIX</button>
+    <button id="grid">GRID</button>
+  </div>
+
+
+</body>
+
+
+		<script>
+		const CLIENT_ID = "804477416877-0mgki4o7fifivkt7bff8nbsp4asdfpjb.apps.googleusercontent.com";
+		const SPREADSHEET_ID = "1lzr3EGEkjp2TTB4pigAXJmV4mEVrMgYsjcZWrmlNHVA";
+		const RANGE = "Namelist!A:Z"; 
+
+		let tokenClient = null;
+		let accessToken = null;
+
+		window.addEventListener("load", () => {
+			tokenClient = google.accounts.oauth2.initTokenClient({
+			client_id: CLIENT_ID,
+			scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
+			callback: async (resp) => {
+				accessToken = resp.access_token;
+				console.log("Access token received");
+
+				try {
+				const rows = await fetchSheetRows();
+				console.log("Sheet rows:", rows);
+
+				document.getElementById("loginbody").style.display = "none";
+
+				if (typeof window.startThreeApp === "function") {
+					window.startThreeApp(rows);
+				} else {
+					console.error("startThreeApp not ready yet");
+				}
+				} catch (e) {
+				console.error("Sheets fetch failed:", e);
+				alert("Sheets fetch failed. Check console.");
+				}
+			}
+			});
+		});
+
+		async function fetchSheetRows() {
+			const url = "https://sheets.googleapis.com/v4/spreadsheets/" + SPREADSHEET_ID + "/values/" + encodeURIComponent(RANGE);
+			console.log("Sheets URL:", url);
+
+			const res = await fetch(url, {
+			headers: { Authorization: `Bearer ${accessToken}` }
+			});
+
+			/*if (!res.ok) throw new Error(await res.text());*/
+			if (!res.ok) {
+			const text = await res.text();
+			console.error("Sheets API response:", text);
+			throw new Error(text);
+			}
+			const data = await res.json();
+			return data.values || [];
+		}
+
+		function handleCredentialResponse(response) {
+			console.log("ID token received");
+			if (!tokenClient) {
+			console.error("tokenClient not initialized yet");
+			return;
+			}
+			tokenClient.requestAccessToken({ prompt: "" });
+		}
+		</script>
+
+
+		
+		<script type="module">
+		
+
+
+			import * as THREE from 'three';
+
+			import TWEEN from 'three/addons/libs/tween.module.js';
+			import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+			import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+
+			/*const table = [
+				'H', 'Hydrogen', '1.00794', 1, 1,
+				'He', 'Helium', '4.002602', 18, 1,
+				'Li', 'Lithium', '6.941', 1, 2,
+				'Be', 'Beryllium', '9.012182', 2, 2,
+				'B', 'Boron', '10.811', 13, 2,
+				'C', 'Carbon', '12.0107', 14, 2,
+				'N', 'Nitrogen', '14.0067', 15, 2,
+				'O', 'Oxygen', '15.9994', 16, 2,
+				'F', 'Fluorine', '18.9984032', 17, 2,
+				'Ne', 'Neon', '20.1797', 18, 2,
+				'Na', 'Sodium', '22.98976...', 1, 3,
+				'Mg', 'Magnesium', '24.305', 2, 3,
+				'Al', 'Aluminium', '26.9815386', 13, 3,
+				'Si', 'Silicon', '28.0855', 14, 3,
+				'P', 'Phosphorus', '30.973762', 15, 3,
+				'S', 'Sulfur', '32.065', 16, 3,
+				'Cl', 'Chlorine', '35.453', 17, 3,
+				'Ar', 'Argon', '39.948', 18, 3,
+				'K', 'Potassium', '39.948', 1, 4,
+				'Ca', 'Calcium', '40.078', 2, 4,
+				'Sc', 'Scandium', '44.955912', 3, 4,
+				'Ti', 'Titanium', '47.867', 4, 4,
+				'V', 'Vanadium', '50.9415', 5, 4,
+				'Cr', 'Chromium', '51.9961', 6, 4,
+				'Mn', 'Manganese', '54.938045', 7, 4,
+				'Fe', 'Iron', '55.845', 8, 4,
+				'Co', 'Cobalt', '58.933195', 9, 4,
+				'Ni', 'Nickel', '58.6934', 10, 4,
+				'Cu', 'Copper', '63.546', 11, 4,
+				'Zn', 'Zinc', '65.38', 12, 4,
+				'Ga', 'Gallium', '69.723', 13, 4,
+				'Ge', 'Germanium', '72.63', 14, 4,
+				'As', 'Arsenic', '74.9216', 15, 4,
+				'Se', 'Selenium', '78.96', 16, 4,
+				'Br', 'Bromine', '79.904', 17, 4,
+				'Kr', 'Krypton', '83.798', 18, 4,
+				'Rb', 'Rubidium', '85.4678', 1, 5,
+				'Sr', 'Strontium', '87.62', 2, 5,
+				'Y', 'Yttrium', '88.90585', 3, 5,
+				'Zr', 'Zirconium', '91.224', 4, 5,
+				'Nb', 'Niobium', '92.90628', 5, 5,
+				'Mo', 'Molybdenum', '95.96', 6, 5,
+				'Tc', 'Technetium', '(98)', 7, 5,
+				'Ru', 'Ruthenium', '101.07', 8, 5,
+				'Rh', 'Rhodium', '102.9055', 9, 5,
+				'Pd', 'Palladium', '106.42', 10, 5,
+				'Ag', 'Silver', '107.8682', 11, 5,
+				'Cd', 'Cadmium', '112.411', 12, 5,
+				'In', 'Indium', '114.818', 13, 5,
+				'Sn', 'Tin', '118.71', 14, 5,
+				'Sb', 'Antimony', '121.76', 15, 5,
+				'Te', 'Tellurium', '127.6', 16, 5,
+				'I', 'Iodine', '126.90447', 17, 5,
+				'Xe', 'Xenon', '131.293', 18, 5,
+				'Cs', 'Caesium', '132.9054', 1, 6,
+				'Ba', 'Barium', '132.9054', 2, 6,
+				'La', 'Lanthanum', '138.90547', 4, 9,
+				'Ce', 'Cerium', '140.116', 5, 9,
+				'Pr', 'Praseodymium', '140.90765', 6, 9,
+				'Nd', 'Neodymium', '144.242', 7, 9,
+				'Pm', 'Promethium', '(145)', 8, 9,
+				'Sm', 'Samarium', '150.36', 9, 9,
+				'Eu', 'Europium', '151.964', 10, 9,
+				'Gd', 'Gadolinium', '157.25', 11, 9,
+				'Tb', 'Terbium', '158.92535', 12, 9,
+				'Dy', 'Dysprosium', '162.5', 13, 9,
+				'Ho', 'Holmium', '164.93032', 14, 9,
+				'Er', 'Erbium', '167.259', 15, 9,
+				'Tm', 'Thulium', '168.93421', 16, 9,
+				'Yb', 'Ytterbium', '173.054', 17, 9,
+				'Lu', 'Lutetium', '174.9668', 18, 9,
+				'Hf', 'Hafnium', '178.49', 4, 6,
+				'Ta', 'Tantalum', '180.94788', 5, 6,
+				'W', 'Tungsten', '183.84', 6, 6,
+				'Re', 'Rhenium', '186.207', 7, 6,
+				'Os', 'Osmium', '190.23', 8, 6,
+				'Ir', 'Iridium', '192.217', 9, 6,
+				'Pt', 'Platinum', '195.084', 10, 6,
+				'Au', 'Gold', '196.966569', 11, 6,
+				'Hg', 'Mercury', '200.59', 12, 6,
+				'Tl', 'Thallium', '204.3833', 13, 6,
+				'Pb', 'Lead', '207.2', 14, 6,
+				'Bi', 'Bismuth', '208.9804', 15, 6,
+				'Po', 'Polonium', '(209)', 16, 6,
+				'At', 'Astatine', '(210)', 17, 6,
+				'Rn', 'Radon', '(222)', 18, 6,
+				'Fr', 'Francium', '(223)', 1, 7,
+				'Ra', 'Radium', '(226)', 2, 7,
+				'Ac', 'Actinium', '(227)', 4, 10,
+				'Th', 'Thorium', '232.03806', 5, 10,
+				'Pa', 'Protactinium', '231.0588', 6, 10,
+				'U', 'Uranium', '238.02891', 7, 10,
+				'Np', 'Neptunium', '(237)', 8, 10,
+				'Pu', 'Plutonium', '(244)', 9, 10,
+				'Am', 'Americium', '(243)', 10, 10,
+				'Cm', 'Curium', '(247)', 11, 10,
+				'Bk', 'Berkelium', '(247)', 12, 10,
+				'Cf', 'Californium', '(251)', 13, 10,
+				'Es', 'Einstenium', '(252)', 14, 10,
+				'Fm', 'Fermium', '(257)', 15, 10,
+				'Md', 'Mendelevium', '(258)', 16, 10,
+				'No', 'Nobelium', '(259)', 17, 10,
+				'Lr', 'Lawrencium', '(262)', 18, 10,
+				'Rf', 'Rutherfordium', '(267)', 4, 7,
+				'Db', 'Dubnium', '(268)', 5, 7,
+				'Sg', 'Seaborgium', '(271)', 6, 7,
+				'Bh', 'Bohrium', '(272)', 7, 7,
+				'Hs', 'Hassium', '(270)', 8, 7,
+				'Mt', 'Meitnerium', '(276)', 9, 7,
+				'Ds', 'Darmstadium', '(281)', 10, 7,
+				'Rg', 'Roentgenium', '(280)', 11, 7,
+				'Cn', 'Copernicium', '(285)', 12, 7,
+				'Nh', 'Nihonium', '(286)', 13, 7,
+				'Fl', 'Flerovium', '(289)', 14, 7,
+				'Mc', 'Moscovium', '(290)', 15, 7,
+				'Lv', 'Livermorium', '(293)', 16, 7,
+				'Ts', 'Tennessine', '(294)', 17, 7,
+				'Og', 'Oganesson', '(294)', 18, 7
+			];*/
+
+			let camera, scene, renderer;
+			let controls;
+			let tableData = [];
+			let sheetRows = [];
+
+			const objects = [];
+			const targets = { table: [], sphere: [], helix: [], grid: [] };
+
+			window.startThreeApp = function (rows) {
+			console.log("Rows passed into app:", rows);
+			sheetRows = rows;
+			tableData = buildTableDataFromRows(rows);
+			init();
+			animate();
+			};
+
+			function buildTableDataFromRows(rows) {
+			const dataRows = rows.slice(1);
+			const out = [];
+
+			const COLS = 20;
+
+			for (let idx = 0; idx < dataRows.length; idx++) {
+				const r = dataRows[idx];
+
+				const symbol = (r[0] ?? "").toString().slice(0, 3) || "?"; 
+				const line1  = (r[0] ?? "").toString();
+				const line2  = (r[2] ?? "").toString(); 
+
+				const col = (idx % COLS) + 1;
+				const row = Math.floor(idx / COLS) + 1;
+
+				out.push(symbol, line1, line2, col, row);
+			}
+			return out;
+			}
+
+
+			function init() {
+
+				camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.z = 3000;
+
+				scene = new THREE.Scene();
+
+				// table
+
+				const cellX = 220;
+				const cellY = 260;
+
+				let maxCol = 1, maxRow = 1;
+				for (let j = 0; j < tableData.length; j += 5) {
+				maxCol = Math.max(maxCol, Number(tableData[j + 3]) || 1);
+				maxRow = Math.max(maxRow, Number(tableData[j + 4]) || 1);
+				}
+
+				const xOffset = ((maxCol + 1) * cellX) / 2;
+				const yOffset = ((maxRow + 1) * cellY) / 2;
+
+				for (let i = 0; i < tableData.length; i += 5) {
+
+				const element = document.createElement('div');
+				element.className = 'element';
+
+				const rowIndex = (i / 5) + 1; 
+				const rawWorth = (sheetRows[rowIndex]?.[5] ?? "").toString();
+				const netWorth = Number(rawWorth.replace(/[^\d.]/g, "")) || 0;
+
+				if (netWorth < 100000) {
+					element.classList.add("net-low");
+				} else if (netWorth < 1000000) {
+					element.classList.add("net-mid");
+				} else {
+					element.classList.add("net-high");
+				}
+
+				const photoUrl = (sheetRows[rowIndex]?.[1] ?? "").toString().trim();
+				if (photoUrl) {
+					const img = document.createElement("img");
+					img.className = "photo";
+					img.src = photoUrl;
+					img.loading = "lazy";
+					img.referrerPolicy = "no-referrer";
+					img.onerror = () => img.remove();
+					element.appendChild(img);
+				}
+
+				const name = document.createElement("div");
+				name.className = "name";
+				name.textContent = (sheetRows[rowIndex]?.[0] ?? "").toString();
+				element.appendChild(name);
+
+				const objectCSS = new CSS3DObject(element);
+				objectCSS.position.x = Math.random() * 4000 - 2000;
+				objectCSS.position.y = Math.random() * 4000 - 2000;
+				objectCSS.position.z = Math.random() * 4000 - 2000;
+				scene.add(objectCSS);
+				objects.push(objectCSS);
+
+				const object = new THREE.Object3D();
+				const col = Number(tableData[i + 3]) || 1;
+				const row = Number(tableData[i + 4]) || 1;
+
+				object.position.x = (col * cellX) - xOffset;
+				object.position.y = -((row * cellY) - yOffset);
+
+				targets.table.push(object);
+				}
+
+
+
+				}
+
+				// sphere
+
+				const vector = new THREE.Vector3();
+
+				for ( let i = 0, l = objects.length; i < l; i ++ ) {
+
+					const phi = Math.acos( - 1 + ( 2 * i ) / l );
+					const theta = Math.sqrt( l * Math.PI ) * phi;
+
+					const object = new THREE.Object3D();
+
+					object.position.setFromSphericalCoords( 800, phi, theta );
+
+					vector.copy( object.position ).multiplyScalar( 2 );
+
+					object.lookAt( vector );
+
+					targets.sphere.push( object );
+
+				}
+
+				// double helix
+
+				targets.helix = [];
+
+				for ( let i = 0, l = objects.length; i < l; i ++ ) {
+
+				const isLeft = ( i % 2 === 0 );
+				const theta = i * 0.35 + ( isLeft ? 0 : Math.PI );
+				const y = - ( i * 8 ) + 450;
+
+				const object = new THREE.Object3D();
+
+				object.position.setFromCylindricalCoords( 900, theta, y );
+
+				vector.x = object.position.x * 2;
+				vector.y = object.position.y;
+				vector.z = object.position.z * 2;
+
+				object.lookAt( vector );
+
+				targets.helix.push( object );
+
+				}
+
+
+				// grid (5 × 4 × 10)
+
+				targets.grid = [];
+
+				const GRID_X = 5;
+				const GRID_Y = 4;
+				const GRID_Z = 10;
+
+				for ( let i = 0; i < objects.length; i ++ ) {
+
+				const object = new THREE.Object3D();
+
+				const x = i % GRID_X;
+				const y = Math.floor( i / GRID_X ) % GRID_Y;
+				const z = Math.floor( i / ( GRID_X * GRID_Y ) );
+
+				object.position.x = x * 400 - 800;
+				object.position.y = - y * 400 + 600;
+				object.position.z = z * 800 - 3600;
+
+				targets.grid.push( object );
+
+				}
+
+
+				//
+
+				renderer = new CSS3DRenderer();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.getElementById( 'container' ).appendChild( renderer.domElement );
+
+				//
+
+				controls = new TrackballControls( camera, renderer.domElement );
+				controls.minDistance = 500;
+				controls.maxDistance = 6000;
+				controls.addEventListener( 'change', render );
+
+				const buttonTable = document.getElementById( 'table' );
+				buttonTable.addEventListener( 'click', function () {
+
+					transform( targets.table, 2000 );
+
+				} );
+
+				const buttonSphere = document.getElementById( 'sphere' );
+				buttonSphere.addEventListener( 'click', function () {
+
+					transform( targets.sphere, 2000 );
+
+				} );
+
+				const buttonHelix = document.getElementById( 'helix' );
+				buttonHelix.addEventListener( 'click', function () {
+
+					transform( targets.helix, 2000 );
+
+				} );
+
+				const buttonGrid = document.getElementById( 'grid' );
+				buttonGrid.addEventListener( 'click', function () {
+
+					transform( targets.grid, 2000 );
+
+				} );
+
+				transform( targets.table, 2000 );
+
+				//
+
+				window.addEventListener( 'resize', onWindowResize );
+
+			}
+
+			function transform( targets, duration ) {
+
+				TWEEN.removeAll();
+
+				for ( let i = 0; i < objects.length; i ++ ) {
+
+					const object = objects[ i ];
+					const target = targets[ i ];
+
+					new TWEEN.Tween( object.position )
+						.to( { x: target.position.x, y: target.position.y, z: target.position.z }, Math.random() * duration + duration )
+						.easing( TWEEN.Easing.Exponential.InOut )
+						.start();
+
+					new TWEEN.Tween( object.rotation )
+						.to( { x: target.rotation.x, y: target.rotation.y, z: target.rotation.z }, Math.random() * duration + duration )
+						.easing( TWEEN.Easing.Exponential.InOut )
+						.start();
+
+				}
+
+				new TWEEN.Tween( this )
+					.to( {}, duration * 2 )
+					.onUpdate( render )
+					.start();
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				render();
+
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				TWEEN.update();
+
+				controls.update();
+
+			}
+
+			function render() {
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	
+
+		<div id="appFooter">
+		<div id="appName">Webpage</div>
+		<div id="appPurpose">
+			This is a 3D visualization demo that loads a roster from Google Sheets
+			and displays each person as a card with photo and color-coded net worth.
+		</div>
+		</div>
+	</body>
+</html>
