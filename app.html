@@ -752,6 +752,19 @@ renderer.domElement.addEventListener('click', (e) => {
 
 				transform( targets.table, 2000 );
 
+
+				// menu buttons
+				const btnTable = document.getElementById('table');
+				const btnSphere = document.getElementById('sphere');
+				const btnHelix = document.getElementById('helix');
+				const btnGrid = document.getElementById('grid');
+				const btnTetra = document.getElementById('tetra');
+
+				if (btnTable) btnTable.addEventListener('click', () => transform(targets.table, 2000));
+				if (btnSphere) btnSphere.addEventListener('click', () => transform(targets.sphere, 2000));
+				if (btnHelix) btnHelix.addEventListener('click', () => transform(targets.helix, 2000));
+				if (btnGrid) btnGrid.addEventListener('click', () => transform(targets.grid, 2000));
+				if (btnTetra) btnTetra.addEventListener('click', () => transform(targets.tetra, 2000));
 				//
 
 				window.addEventListener( 'resize', onWindowResize );
