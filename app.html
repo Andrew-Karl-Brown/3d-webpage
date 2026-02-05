@@ -542,7 +542,13 @@ if (!window.startThreeApp) {
 				// renderer
 				renderer = new CSS3DRenderer();
 				renderer.setSize(window.innerWidth, window.innerHeight);
-				document.getElementById('container').appendChild(renderer.domElement);
+				let containerEl = document.getElementById('container');
+				if (!containerEl) {
+					containerEl = document.createElement('div');
+					containerEl.id = 'container';
+					document.body.appendChild(containerEl);
+				}
+				containerEl.appendChild(renderer.domElement);
 				// controls
 				controls = new TrackballControls(camera, renderer.domElement);
 // Allow clicking UI inside CSS3DObjects: stop TrackballControls from swallowing pointer events
