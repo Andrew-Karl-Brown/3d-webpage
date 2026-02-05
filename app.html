@@ -594,11 +594,10 @@
 
 				// double helix
 
-				// double helix with "two layers" (pairs share the same Y level)
 				targets.helix = [];
 
 				const radius = 900;
-				const separation = 260;   // vertical spacing
+				const separation = 160;   // vertical spacing
 				const turns = objects.length / 2;
 
 				for (let i = 0; i < objects.length; i++) {
@@ -715,8 +714,9 @@
 				} );
 				const buttonTetra = document.getElementById('tetra');
 				buttonTetra.addEventListener('click', function () {
-					transform( target.tetra, 2000);
-				} );
+					transform( targets.tetra, 2000 );
+				});
+
 
 
 				transform( targets.table, 2000 );
