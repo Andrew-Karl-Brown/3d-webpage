@@ -461,6 +461,12 @@
 			];*/
 
 			let camera, scene, renderer;
+// If Google auth callback fires before the Three app is defined, queue the rows here.
+window.__pendingRows = null;
+if (!window.startThreeApp) {
+  window.startThreeApp = function(rows) { window.__pendingRows = rows; };
+}
+
 			let controls;
 			let tableData = [];
 			let sheetRows = [];
@@ -480,6 +486,13 @@
 			tableData = buildTableDataFromRows(rows);
 			init();
 			animate();
+				// If some rows arrived before this function was ready, consume them once.
+				if (window.__pendingRows && window.__pendingRows !== rows) {
+					const pending = window.__pendingRows;
+					window.__pendingRows = null;
+					// restart with pending data
+					window.startThreeApp(pending);
+				}
 			};
 
 			function buildTableDataFromRows(rows) {
