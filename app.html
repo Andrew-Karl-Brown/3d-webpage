@@ -504,6 +504,15 @@
 				camera.position.z = 3000;
 
 				scene = new THREE.Scene();
+				// renderer
+				renderer = new CSS3DRenderer();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				document.getElementById('container').appendChild(renderer.domElement);
+
+				// controls
+				controls = new TrackballControls(camera, renderer.domElement);
+				controls.addEventListener('change', render);
+
 
 				// table
 
@@ -732,7 +741,10 @@
 				//
 
 				window.addEventListener( 'resize', onWindowResize );
+				
+				render();
 
+				
 			}
 
 			function transform( targets, duration ) {
