@@ -483,10 +483,16 @@
 			];*/
 
 			let camera, scene, renderer;
+// Global dispatcher: safe to call before the real app is defined.
+window.__pendingRows = null;
+window.startThreeApp = function(rows) {
+  if (typeof window.__realStartThreeApp === 'function') return window.__realStartThreeApp(rows);
+  window.__pendingRows = rows;
+};
+
 // If Google auth callback fires before the Three app is defined, queue the rows here.
 window.__pendingRows = null;
-if (!window.startThreeApp) {
-  window.startThreeApp = function(rows) {
+window.__realStartThreeApp = function(rows) {
 				window.__pendingRows = null;
 
 				// Avoid double-initializing the scene (can happen if auth callbacks fire twice)
@@ -516,6 +522,13 @@ if (!window.startThreeApp) {
 				try {
 					init();
 					animate();
+				// Run any pending rows that arrived before the real app was ready
+				if (window.__pendingRows) {
+					const pending = window.__pendingRows;
+					window.__pendingRows = null;
+					// if we started with placeholder/empty, restart once with real data
+					if (pending !== rows) window.__realStartThreeApp(pending);
+				}
 				} catch (e) {
 					console.error("startThreeApp init/animate crashed:", e);
 					__started = false;
