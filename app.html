@@ -574,6 +574,16 @@ window.__realStartThreeApp = function(rows) {
 				// renderer
 				renderer = new CSS3DRenderer();
 				renderer.setSize(window.innerWidth, window.innerHeight);
+				renderer.domElement.style.position = 'absolute';
+				renderer.domElement.style.top = '0';
+				renderer.domElement.style.left = '0';
+				renderer.domElement.style.width = '100%';
+				renderer.domElement.style.height = '100%';
+				renderer.domElement.style.zIndex = '0';
+				const menuEl = document.getElementById('menu');
+				if (menuEl) menuEl.style.zIndex = '1';
+				const infoEl = document.getElementById('info');
+				if (infoEl) infoEl.style.zIndex = '1';
 				let containerEl = document.getElementById('container');
 				if (!containerEl) {
 					containerEl = document.createElement('div');
