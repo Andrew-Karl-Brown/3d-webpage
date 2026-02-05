@@ -257,6 +257,7 @@
     <button id="sphere">SPHERE</button>
     <button id="helix">HELIX</button>
     <button id="grid">GRID</button>
+	<button id="tetra">TETRA</button>
   </div>
 
 
@@ -465,7 +466,7 @@
 			let sheetRows = [];
 
 			const objects = [];
-			const targets = { table: [], sphere: [], helix: [], grid: [] };
+			const targets = { table: [], sphere: [], helix: [], grid: [], tetra: [] };
 
 			window.startThreeApp = function (rows) {
 			console.log("Rows passed into app:", rows);
@@ -593,27 +594,35 @@
 
 				// double helix
 
+				// double helix with "two layers" (pairs share the same Y level)
 				targets.helix = [];
 
-				for ( let i = 0, l = objects.length; i < l; i ++ ) {
+				const radiusA = 900;
+				const radiusB = 1200;   // separate strands
+				const thetaStep = 0.32;
+				const yStep = 260;      // must be >= card height spacing
 
-				const isLeft = ( i % 2 === 0 );
-				const theta = i * 0.35 + ( isLeft ? 0 : Math.PI );
-				const y = - ( i * 8 ) + 450;
+				for (let i = 0; i < objects.length; i++) {
+
+				const pair = Math.floor(i / 2);
+				const strand = i % 2; // 0 or 1
+
+				const theta = pair * thetaStep + (strand ? Math.PI : 0);
+				const y = -(pair * yStep) + 450;
+
+				const r = strand ? radiusB : radiusA;
 
 				const object = new THREE.Object3D();
-
-				object.position.setFromCylindricalCoords( 900, theta, y );
+				object.position.setFromCylindricalCoords(r, theta, y);
 
 				vector.x = object.position.x * 2;
 				vector.y = object.position.y;
 				vector.z = object.position.z * 2;
+				object.lookAt(vector);
 
-				object.lookAt( vector );
-
-				targets.helix.push( object );
-
+				targets.helix.push(object);
 				}
+
 
 
 				// grid (5 × 4 × 10)
@@ -639,6 +648,80 @@
 				targets.grid.push( object );
 
 				}
+				
+				
+				// TETRA
+				// ===== TETRAHEDRON (exact THREE.TetrahedronGeometry faces) =====
+				targets.tetra = [];
+
+				const R = 1400; // size of tetrahedron (adjust bigger if needed)
+				const geo = new THREE.TetrahedronGeometry(R, 0); // detail=0 => 4 faces
+				const pos = geo.attributes.position.array;
+
+				// TetrahedronGeometry is non-indexed: every 3 vertices = one triangle
+				const faces = [];
+				for (let i = 0; i < pos.length; i += 9) {
+				const A = new THREE.Vector3(pos[i],     pos[i+1], pos[i+2]);
+				const B = new THREE.Vector3(pos[i+3],   pos[i+4], pos[i+5]);
+				const C = new THREE.Vector3(pos[i+6],   pos[i+7], pos[i+8]);
+				faces.push([A, B, C]);
+				}
+
+				// helper: generate a grid of barycentric points inside a triangle
+				function trianglePoints(A, B, C, side, margin = 0.08) {
+				// margin keeps points away from edges (reduces overlap visually)
+				const pts = [];
+				for (let r = 0; r < side; r++) {
+					for (let c = 0; c < side - r; c++) {
+					// barycentric u,v,w with u+v+w=1 and all positive
+					let u = (c + 0.5) / side;
+					let v = (r + 0.5) / side;
+					// push inward from edges
+					u = margin + u * (1 - 2*margin);
+					v = margin + v * (1 - 2*margin);
+					if (u + v >= 1 - margin) continue; // keep inside
+					const w = 1 - u - v;
+
+					const P = new THREE.Vector3()
+						.copy(A).multiplyScalar(w)
+						.add(new THREE.Vector3().copy(B).multiplyScalar(u))
+						.add(new THREE.Vector3().copy(C).multiplyScalar(v));
+
+					pts.push(P);
+					}
+				}
+				return pts;
+				}
+
+				// Decide density so we have enough slots
+				const total = objects.length;
+				let side = 6;
+				while (true) {
+				// approx points per face for this side (triangular number)
+				const perFace = (side * (side + 1)) / 2;
+				if (perFace * 4 >= total) break;
+				side++;
+				}
+
+				// Build points on each of the 4 faces, then assign to objects
+				const all = [];
+				for (let f = 0; f < 4; f++) {
+				const [A, B, C] = faces[f];
+				all.push(...trianglePoints(A, B, C, side, 0.10));
+				}
+
+				// If we generated more points than needed, just use first N
+				for (let i = 0; i < total; i++) {
+				const object = new THREE.Object3D();
+				object.position.copy(all[i] ?? new THREE.Vector3());
+
+				// orient to face outward (away from center)
+				const outward = object.position.clone().multiplyScalar(2);
+				object.lookAt(outward);
+
+				targets.tetra.push(object);
+				}
+
 
 
 				//
@@ -681,6 +764,11 @@
 					transform( targets.grid, 2000 );
 
 				} );
+				const buttonTetra = document.getElementById('tetra');
+				buttonTetra.addEventListener('click', function ()) {
+					transform( target.tetra, 2000);
+				) );
+
 
 				transform( targets.table, 2000 );
 
