@@ -286,11 +286,7 @@
 
 				document.getElementById("loginbody").style.display = "none";
 
-				if (typeof window.startThreeApp === "function") {
-					window.startThreeApp(rows);
-				} else {
-					console.error("startThreeApp not ready yet");
-				}
+				window.startThreeApp(rows);
 				} catch (e) {
 				console.error("Sheets fetch failed:", e);
 				alert("Sheets fetch failed. Check console.");
