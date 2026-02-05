@@ -507,9 +507,8 @@
 				// renderer
 				renderer = new CSS3DRenderer();
 				renderer.setSize(window.innerWidth, window.innerHeight);
-				document.getElementById('container').  renderer.domElement.style.pointerEvents = 'none';
-appendChild(renderer.domElement);
-
+				renderer.domElement.style.pointerEvents = 'none';
+				document.getElementById('container').appendChild(renderer.domElement);
 				// controls
 				controls = new TrackballControls(camera, renderer.domElement);
 				controls.addEventListener('change', render);
