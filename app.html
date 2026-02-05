@@ -596,26 +596,38 @@
 
 				targets.helix = [];
 
+				// Double-helix (DNA-like): two strands with clear separation
+				const radius = 900;
+				const separation = 80;   // vertical spacing between base-pairs (bigger = less cramped)
+				const twist = 0.38;      // radians per base-pair
+
 				for ( let i = 0, l = objects.length; i < l; i ++ ) {
 
-				const isLeft = ( i % 2 === 0 );
-				const theta = i * 0.35 + ( isLeft ? 0 : Math.PI );
-				const y = - ( i * 8 ) + 450;
+					const strand = i % 2;              // 0 or 1
+					const idx = Math.floor( i / 2 );   // base-pair index
 
-				const object = new THREE.Object3D();
+					const theta = idx * twist + ( strand * Math.PI );
+					const y = -( idx * separation ) + 900;
 
-				object.position.setFromCylindricalCoords( 900, theta, y );
+					const object = new THREE.Object3D();
 
-				vector.x = object.position.x * 2;
-				vector.y = object.position.y;
-				vector.z = object.position.z * 2;
+					object.position.set(
+						radius * Math.cos( theta ),
+						y,
+						radius * Math.sin( theta )
+					);
 
-				object.lookAt( vector );
+					// Keep cards facing outward (not edge-on)
+					vector.set(
+						object.position.x * 2,
+						object.position.y,
+						object.position.z * 2
+					);
+					object.lookAt( vector );
 
-				targets.helix.push( object );
+					targets.helix.push( object );
 
 				}
-
 
 				// grid (5 × 4 × 10)
 
