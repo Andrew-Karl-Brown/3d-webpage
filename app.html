@@ -1,7 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  
+<script>
+// Ensure startThreeApp always exists (Google callback may fire before module loads)
+window.__pendingRows = null;
+window.startThreeApp = window.startThreeApp || function(rows){ window.__pendingRows = rows; };
+</script>
+<meta charset="utf-8" />
   <title>Webpage</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
@@ -311,7 +317,7 @@
 					if (lb) lb.style.display = "none";
 
 					try {
-						window.startThreeApp(rows);
+						if (typeof window.startThreeApp !== 'function') { window.__pendingRows = rows; window.startThreeApp = function(r){ window.__pendingRows = r; }; } else { window.startThreeApp(rows); }
 					} catch (e) {
 						console.error("startThreeApp crashed:", e);
 						alert("3D app failed to start: " + (e && e.message ? e.message : e));
