@@ -468,7 +468,13 @@
 			const objects = [];
 			const targets = { table: [], sphere: [], helix: [], grid: [], tetra: [] };
 
-			window.startThreeApp = function (rows) {
+			window.startThreeApp = function(rows) {
+				// Ensure 3D view is visible
+				const lb = document.getElementById('loginbody');
+				if (lb) lb.style.display = 'none';
+				const c = document.getElementById('container');
+				if (c) c.style.display = 'block';
+				document.body.style.overflow = 'hidden';
 			console.log("Rows passed into app:", rows);
 			sheetRows = rows;
 			tableData = buildTableDataFromRows(rows);
