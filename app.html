@@ -277,22 +277,48 @@
 			client_id: CLIENT_ID,
 			scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
 			callback: async (resp) => {
-				accessToken = resp.access_token;
-				console.log("Access token received");
+					// Handle token errors / missing tokens (common cause of 'Sheets fetch failed')
+					if (resp?.error) {
+						console.error("Token error:", resp);
+						// If silent token request failed, ask user interactively
+						if (resp.error === "consent_required" || resp.error === "interaction_required") {
+							tokenClient.requestAccessToken({ prompt: "consent" });
+						}
+						alert("Google auth failed: " + resp.error + ". Check console.");
+						return;
+					}
+					if (!resp?.access_token) {
+						console.error("No access_token in response:", resp);
+						// Try interactive consent once
+						tokenClient.requestAccessToken({ prompt: "consent" });
+						return;
+					}
 
-				try {
-				const rows = await fetchSheetRows();
-				console.log("Sheet rows:", rows);
+					accessToken = resp.access_token;
+					console.log("Access token received");
 
-				document.getElementById("loginbody").style.display = "none";
+					let rows;
+					try {
+						rows = await fetchSheetRows();
+						console.log("Sheet rows:", rows);
+					} catch (e) {
+						console.error("Sheets fetch failed:", e);
+						alert("Sheets fetch failed. Check console.");
+						return;
+					}
 
-				window.startThreeApp(rows);
-				} catch (e) {
-				console.error("Sheets fetch failed:", e);
-				alert("Sheets fetch failed. Check console.");
+					const lb = document.getElementById("loginbody");
+					if (lb) lb.style.display = "none";
+
+					try {
+						window.startThreeApp(rows);
+					} catch (e) {
+						console.error("startThreeApp crashed:", e);
+						alert("3D app failed to start. Check console.");
+					}
 				}
-			}
 			});
+
 		});
 
 		async function fetchSheetRows() {
@@ -471,6 +497,7 @@ if (!window.startThreeApp) {
 			const targets = { table: [], sphere: [], helix: [], grid: [], tetra: [] };
 
 			window.startThreeApp = function(rows) {
+				window.__pendingRows = null;
 				// Ensure 3D view is visible
 				const lb = document.getElementById('loginbody');
 				if (lb) lb.style.display = 'none';
@@ -482,13 +509,6 @@ if (!window.startThreeApp) {
 			tableData = buildTableDataFromRows(rows);
 			init();
 			animate();
-				// If some rows arrived before this function was ready, consume them once.
-				if (window.__pendingRows && window.__pendingRows !== rows) {
-					const pending = window.__pendingRows;
-					window.__pendingRows = null;
-					// restart with pending data
-					window.startThreeApp(pending);
-				}
 			};
 
 			function buildTableDataFromRows(rows) {
