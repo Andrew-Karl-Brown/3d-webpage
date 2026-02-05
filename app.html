@@ -1,13 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  
-<script>
-// Ensure startThreeApp always exists (Google callback may fire before module loads)
-window.__pendingRows = null;
-window.startThreeApp = window.startThreeApp || function(rows){ window.__pendingRows = rows; };
-</script>
-<meta charset="utf-8" />
+  <meta charset="utf-8" />
   <title>Webpage</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
@@ -17,13 +11,13 @@ window.startThreeApp = window.startThreeApp || function(rows){ window.__pendingR
 
   
   <script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-  }
-}
-</script>
+		{
+			"imports": {
+				"three": "./build/three.module.js",
+				"three/addons/": "./jsm/"
+			}
+		}
+		</script>
   
   <style>
     html, body {
@@ -263,7 +257,7 @@ window.startThreeApp = window.startThreeApp || function(rows){ window.__pendingR
     <button id="sphere">SPHERE</button>
     <button id="helix">HELIX</button>
     <button id="grid">GRID</button>
-	<button id="tetra">TETRA</button>
+    <button id="tetra">TETRA</button>
   </div>
 
 
@@ -283,48 +277,26 @@ window.startThreeApp = window.startThreeApp || function(rows){ window.__pendingR
 			client_id: CLIENT_ID,
 			scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
 			callback: async (resp) => {
-					// Handle token errors / missing tokens (common cause of 'Sheets fetch failed')
-					if (resp?.error) {
-						console.error("Token error:", resp);
-						// If silent token request failed, ask user interactively
-						if (resp.error === "consent_required" || resp.error === "interaction_required") {
-							tokenClient.requestAccessToken({ prompt: "consent" });
-						}
-						alert("Google auth failed: " + resp.error + ". Check console.");
-						return;
-					}
-					if (!resp?.access_token) {
-						console.error("No access_token in response:", resp);
-						// Try interactive consent once
-						tokenClient.requestAccessToken({ prompt: "consent" });
-						return;
-					}
+				accessToken = resp.access_token;
+				console.log("Access token received");
 
-					accessToken = resp.access_token;
-					console.log("Access token received");
+				try {
+				const rows = await fetchSheetRows();
+				console.log("Sheet rows:", rows);
 
-					let rows;
-					try {
-						rows = await fetchSheetRows();
-						console.log("Sheet rows:", rows);
-					} catch (e) {
-						console.error("Sheets fetch failed:", e);
-						alert("Sheets fetch failed. Check console.");
-						return;
-					}
+				document.getElementById("loginbody").style.display = "none";
 
-					const lb = document.getElementById("loginbody");
-					if (lb) lb.style.display = "none";
-
-					try {
-						if (typeof window.startThreeApp !== 'function') { window.__pendingRows = rows; window.startThreeApp = function(r){ window.__pendingRows = r; }; } else { window.startThreeApp(rows); }
-					} catch (e) {
-						console.error("startThreeApp crashed:", e);
-						alert("3D app failed to start: " + (e && e.message ? e.message : e));
-					}
+				if (typeof window.startThreeApp === "function") {
+					window.startThreeApp(rows);
+				} else {
+					console.error("startThreeApp not ready yet");
 				}
+				} catch (e) {
+				console.error("Sheets fetch failed:", e);
+				alert("Sheets fetch failed. Check console.");
+				}
+			}
 			});
-
 		});
 
 		async function fetchSheetRows() {
@@ -489,61 +461,20 @@ window.startThreeApp = window.startThreeApp || function(rows){ window.__pendingR
 			];*/
 
 			let camera, scene, renderer;
-				let sheetRows = [];
-				let __started = false;
-// Global dispatcher: safe to call before the real app is defined.
-window.__pendingRows = null;
-window.startThreeApp = function(rows) {
-  if (typeof window.__realStartThreeApp === 'function') return window.__realStartThreeApp(rows);
-  window.__pendingRows = rows;
-};
+			let controls;
+			let tableData = [];
+			let sheetRows = [];
 
-// If Google auth callback fires before the Three app is defined, queue the rows here.
-window.__pendingRows = null;
-window.__realStartThreeApp = function(rows) {
-				window.__pendingRows = null;
+			const objects = [];
+			const targets = { table: [], sphere: [], helix: [], grid: [], tetra: [] };
 
-				// Avoid double-initializing the scene (can happen if auth callbacks fire twice)
-				if (__started) {
-					console.warn("startThreeApp called again; ignoring to prevent double init.");
-					return;
-				}
-				__started = true;
-
-				// Ensure 3D view is visible
-				const lb = document.getElementById('loginbody');
-				if (lb) lb.style.display = 'none';
-
-				let c = document.getElementById('container');
-				if (!c) {
-					c = document.createElement('div');
-					c.id = 'container';
-					document.body.appendChild(c);
-				}
-				c.style.display = 'block';
-				document.body.style.overflow = 'hidden';
-
-				console.log("Rows passed into app:", rows);
-				sheetRows = rows;
-				tableData = buildTableDataFromRows(rows);
-
-				try {
-					init();
-					animate();
-				// Run any pending rows that arrived before the real app was ready
-				if (window.__pendingRows) {
-					const pending = window.__pendingRows;
-					window.__pendingRows = null;
-					// if we started with placeholder/empty, restart once with real data
-					if (pending !== rows) window.__realStartThreeApp(pending);
-				}
-				} catch (e) {
-					console.error("startThreeApp init/animate crashed:", e);
-					__started = false;
-					alert("3D app crashed: " + (e && e.message ? e.message : e));
-					throw e;
-				}
-				};
+			window.startThreeApp = function (rows) {
+			console.log("Rows passed into app:", rows);
+			sheetRows = rows;
+			tableData = buildTableDataFromRows(rows);
+			init();
+			animate();
+			};
 
 			function buildTableDataFromRows(rows) {
 			const dataRows = rows.slice(1);
@@ -573,45 +504,6 @@ window.__realStartThreeApp = function(rows) {
 				camera.position.z = 3000;
 
 				scene = new THREE.Scene();
-				// renderer
-				renderer = new CSS3DRenderer();
-				renderer.setSize(window.innerWidth, window.innerHeight);
-				renderer.domElement.style.position = 'absolute';
-				renderer.domElement.style.top = '0';
-				renderer.domElement.style.left = '0';
-				renderer.domElement.style.width = '100%';
-				renderer.domElement.style.height = '100%';
-				renderer.domElement.style.zIndex = '0';
-				const menuEl = document.getElementById('menu');
-				if (menuEl) menuEl.style.zIndex = '1';
-				const infoEl = document.getElementById('info');
-				if (infoEl) infoEl.style.zIndex = '1';
-				let containerEl = document.getElementById('container');
-				if (!containerEl) {
-					containerEl = document.createElement('div');
-					containerEl.id = 'container';
-					document.body.appendChild(containerEl);
-				}
-				containerEl.appendChild(renderer.domElement);
-				// controls
-				controls = new TrackballControls(camera, renderer.domElement);
-// Allow clicking UI inside CSS3DObjects: stop TrackballControls from swallowing pointer events
-renderer.domElement.addEventListener('pointerdown', (e) => {
-  const interactive = e.target && e.target.closest && e.target.closest('button, a, input, textarea, select, label');
-  if (interactive) {
-    e.stopPropagation();
-    if (controls) controls.enabled = false;
-  }
-}, true);
-renderer.domElement.addEventListener('pointerup', () => {
-  if (controls) controls.enabled = true;
-}, true);
-renderer.domElement.addEventListener('click', (e) => {
-  const interactive = e.target && e.target.closest && e.target.closest('button, a, input, textarea, select, label');
-  if (interactive) e.stopPropagation();
-}, true);
-				controls.addEventListener('change', render);
-
 
 				// table
 
@@ -704,36 +596,26 @@ renderer.domElement.addEventListener('click', (e) => {
 
 				targets.helix = [];
 
-				// Double-helix (DNA-like): two strands with phase shift and paired y-levels
-				const radius = 1000;
-				const separation = 45;   // vertical spacing between base-pairs
-				const step = 0.45;       // twist amount per base-pair
+				for ( let i = 0, l = objects.length; i < l; i ++ ) {
 
-				for (let i = 0; i < objects.length; i++) {
+				const isLeft = ( i % 2 === 0 );
+				const theta = i * 0.35 + ( isLeft ? 0 : Math.PI );
+				const y = - ( i * 8 ) + 450;
 
-					const strand = i % 2;                 // 0 or 1
-					const index = Math.floor(i / 2);      // base-pair index
+				const object = new THREE.Object3D();
 
-					const theta = index * step + (strand * Math.PI);
-					const y = -(index * separation) + 800;
+				object.position.setFromCylindricalCoords( 900, theta, y );
 
-					const object = new THREE.Object3D();
-					object.position.set(
-						radius * Math.cos(theta),
-						y,
-						radius * Math.sin(theta)
-					);
+				vector.x = object.position.x * 2;
+				vector.y = object.position.y;
+				vector.z = object.position.z * 2;
 
-					// orient roughly outward so cards aren't edge-on
-					const look = new THREE.Vector3(
-						object.position.x * 2,
-						object.position.y,
-						object.position.z * 2
-					);
-					object.lookAt(look);
+				object.lookAt( vector );
 
-					targets.helix.push(object);
+				targets.helix.push( object );
+
 				}
+
 
 				// grid (5 × 4 × 10)
 
@@ -758,85 +640,126 @@ renderer.domElement.addEventListener('click', (e) => {
 				targets.grid.push( object );
 
 				}
-				
-				
-				// TETRA
-				// ===== TETRAHEDRON (exact THREE.TetrahedronGeometry faces) =====
-				// --- TETRA (4-face pyramid) layout: distribute on 4 faces + layered shells ---
+
+
+				// tetra (4-face pyramid / tetrahedron)
+
 				targets.tetra = [];
 
-				// 4-face pyramid (tetrahedron): distribute objects across the 4 triangular faces
-				const t = 750;
-				const V = [
-					new THREE.Vector3( 0,  t,  0 ),   // A (apex-ish)
-					new THREE.Vector3( t, -t,  t ),   // B
-					new THREE.Vector3(-t, -t,  t ),   // C
-					new THREE.Vector3( 0, -t, -t )    // D
-				];
+				// Regular tetrahedron vertices (normalized), then scaled
+				const v0 = new THREE.Vector3( 1,  1,  1 ).normalize();
+				const v1 = new THREE.Vector3( 1, -1, -1 ).normalize();
+				const v2 = new THREE.Vector3(-1,  1, -1 ).normalize();
+				const v3 = new THREE.Vector3(-1, -1,  1 ).normalize();
 
-				// faces as vertex indices (4 triangular faces)
+				const R = 1200; // overall size
+				v0.multiplyScalar(R); v1.multiplyScalar(R); v2.multiplyScalar(R); v3.multiplyScalar(R);
+
 				const faces = [
-					[0, 1, 2], // A-B-C
-					[0, 1, 3], // A-B-D
-					[0, 2, 3], // A-C-D
-					[1, 2, 3]  // B-C-D
+					[ v0, v1, v2 ],
+					[ v0, v1, v3 ],
+					[ v0, v2, v3 ],
+					[ v1, v2, v3 ]
 				];
 
-				const center = new THREE.Vector3(0, 0, 0);
+				// Deterministic pseudo-random generator based on index (stable layout)
+				function rand01(seed) {
+					let x = seed | 0;
+					x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+					return ((x >>> 0) % 1000000) / 1000000;
+				}
 
-				for (let i = 0; i < objects.length; i++) {
+				for ( let i = 0, l = objects.length; i < l; i ++ ) {
 
-					// pick a face in round-robin fashion
-					const f = faces[i % 4];
-					const A = V[f[0]], B = V[f[1]], C = V[f[2]];
+					const face = faces[ i % 4 ];
+					const A = face[0], B = face[1], C = face[2];
 
-					// deterministic pseudo-random u,v in [0,1)
-					let u = (Math.sin(i * 12.9898 + 78.233) * 43758.5453) % 1;
-					let v = (Math.sin(i * 93.9898 + 67.345) * 24634.6345) % 1;
-					u = u < 0 ? u + 1 : u;
-					v = v < 0 ? v + 1 : v;
-
-					// fold into triangle
-					if (u + v > 1) {
-						u = 1 - u;
-						v = 1 - v;
-					}
+					// Uniform point on triangle using barycentric coords
+					const r1 = rand01( i * 9781 + 11 );
+					const r2 = rand01( i * 6271 + 97 );
+					const sr1 = Math.sqrt( r1 );
+					const u = 1 - sr1;
+					const v = sr1 * ( 1 - r2 );
+					const w = sr1 * r2;
 
 					const pos = new THREE.Vector3()
-						.copy(A)
-						.add(new THREE.Vector3().subVectors(B, A).multiplyScalar(u))
-						.add(new THREE.Vector3().subVectors(C, A).multiplyScalar(v));
+						.copy(A).multiplyScalar(u)
+						.add( new THREE.Vector3().copy(B).multiplyScalar(v) )
+						.add( new THREE.Vector3().copy(C).multiplyScalar(w) );
 
 					const object = new THREE.Object3D();
-					object.position.copy(pos);
-					object.lookAt(center);
+					object.position.copy( pos );
 
-					targets.tetra.push(object);
+					// Face normal (for orientation)
+					const normal = new THREE.Vector3()
+						.subVectors( B, A )
+						.cross( new THREE.Vector3().subVectors( C, A ) )
+						.normalize();
+
+					vector.copy( object.position ).addScaledVector( normal, 800 );
+					object.lookAt( vector );
+
+					targets.tetra.push( object );
+
 				}
+
+
+
+				//
+
+				renderer = new CSS3DRenderer();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.getElementById( 'container' ).appendChild( renderer.domElement );
+
+				//
+
+				controls = new TrackballControls( camera, renderer.domElement );
+				controls.minDistance = 500;
+				controls.maxDistance = 6000;
+				controls.addEventListener( 'change', render );
+
+				const buttonTable = document.getElementById( 'table' );
+				buttonTable.addEventListener( 'click', function () {
+
+					transform( targets.helix, 2000 );
+
+				} );
+
+				const buttonSphere = document.getElementById( 'sphere' );
+				buttonSphere.addEventListener( 'click', function () {
+
+					transform( targets.sphere, 2000 );
+
+				} );
+
+				const buttonHelix = document.getElementById( 'helix' );
+				buttonHelix.addEventListener( 'click', function () {
+
+					transform( targets.helix, 2000 );
+
+				} );
+
+				const buttonGrid = document.getElementById( 'grid' );
+				buttonGrid.addEventListener( 'click', function () {
+
+					transform( targets.grid, 2000 );
+
+				} );
+
+				const buttonTetra = document.getElementById( 'tetra' );
+				buttonTetra.addEventListener( 'click', function () {
+
+					transform( targets.tetra, 2000 );
+
+				} );
+
 
 				transform( targets.table, 2000 );
 
-
-
-				// menu buttons
-				const btnTable = document.getElementById('table');
-				const btnSphere = document.getElementById('sphere');
-				const btnHelix = document.getElementById('helix');
-				const btnGrid = document.getElementById('grid');
-				const btnTetra = document.getElementById('tetra');
-
-				if (btnTable) btnTable.addEventListener('click', () => transform(targets.table, 2000));
-				if (btnSphere) btnSphere.addEventListener('click', () => transform(targets.sphere, 2000));
-				if (btnHelix) btnHelix.addEventListener('click', () => transform(targets.helix, 2000));
-				if (btnGrid) btnGrid.addEventListener('click', () => transform(targets.grid, 2000));
-				if (btnTetra) btnTetra.addEventListener('click', () => transform(targets.tetra, 2000));
 				//
 
 				window.addEventListener( 'resize', onWindowResize );
-				
-				render();
 
-				
 			}
 
 			function transform( targets, duration ) {
@@ -860,11 +783,10 @@ renderer.domElement.addEventListener('click', (e) => {
 
 				}
 
-				new TWEEN.Tween( {} )
+				new TWEEN.Tween( this )
 					.to( {}, duration * 2 )
-					.onUpdate(() => render())
+					.onUpdate( render )
 					.start();
-
 
 			}
 
@@ -880,19 +802,20 @@ renderer.domElement.addEventListener('click', (e) => {
 			}
 
 			function animate() {
-			requestAnimationFrame(animate);
-			TWEEN.update();
-			if (controls) controls.update();
-			render();
+
+				requestAnimationFrame( animate );
+
+				TWEEN.update();
+
+				controls.update();
+
 			}
 
 			function render() {
-			if (!renderer || !scene || !camera) return;
-			renderer.render(scene, camera);
+
+				renderer.render( scene, camera );
+
 			}
-
-
-
 
 		</script>
 	
