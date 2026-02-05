@@ -314,7 +314,7 @@
 						window.startThreeApp(rows);
 					} catch (e) {
 						console.error("startThreeApp crashed:", e);
-						alert("3D app failed to start. Check console.");
+						alert("3D app failed to start: " + (e && e.message ? e.message : e));
 					}
 				}
 			});
@@ -486,30 +486,43 @@
 // If Google auth callback fires before the Three app is defined, queue the rows here.
 window.__pendingRows = null;
 if (!window.startThreeApp) {
-  window.startThreeApp = function(rows) { window.__pendingRows = rows; };
-}
-
-			let controls;
-			let tableData = [];
-			let sheetRows = [];
-
-			const objects = [];
-			const targets = { table: [], sphere: [], helix: [], grid: [], tetra: [] };
-
-			window.startThreeApp = function(rows) {
+  window.startThreeApp = function(rows) {
 				window.__pendingRows = null;
+
+				// Avoid double-initializing the scene (can happen if auth callbacks fire twice)
+				if (__started) {
+					console.warn("startThreeApp called again; ignoring to prevent double init.");
+					return;
+				}
+				__started = true;
+
 				// Ensure 3D view is visible
 				const lb = document.getElementById('loginbody');
 				if (lb) lb.style.display = 'none';
-				const c = document.getElementById('container');
-				if (c) c.style.display = 'block';
+
+				let c = document.getElementById('container');
+				if (!c) {
+					c = document.createElement('div');
+					c.id = 'container';
+					document.body.appendChild(c);
+				}
+				c.style.display = 'block';
 				document.body.style.overflow = 'hidden';
-			console.log("Rows passed into app:", rows);
-			sheetRows = rows;
-			tableData = buildTableDataFromRows(rows);
-			init();
-			animate();
-			};
+
+				console.log("Rows passed into app:", rows);
+				sheetRows = rows;
+				tableData = buildTableDataFromRows(rows);
+
+				try {
+					init();
+					animate();
+				} catch (e) {
+					console.error("startThreeApp init/animate crashed:", e);
+					__started = false;
+					alert("3D app crashed: " + (e && e.message ? e.message : e));
+					throw e;
+				}
+				};
 
 			function buildTableDataFromRows(rows) {
 			const dataRows = rows.slice(1);
