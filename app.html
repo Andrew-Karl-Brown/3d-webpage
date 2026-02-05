@@ -507,10 +507,24 @@
 				// renderer
 				renderer = new CSS3DRenderer();
 				renderer.setSize(window.innerWidth, window.innerHeight);
-				renderer.domElement.style.pointerEvents = 'none';
 				document.getElementById('container').appendChild(renderer.domElement);
 				// controls
 				controls = new TrackballControls(camera, renderer.domElement);
+// Allow clicking UI inside CSS3DObjects: stop TrackballControls from swallowing pointer events
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  const interactive = e.target && e.target.closest && e.target.closest('button, a, input, textarea, select, label');
+  if (interactive) {
+    e.stopPropagation();
+    if (controls) controls.enabled = false;
+  }
+}, true);
+renderer.domElement.addEventListener('pointerup', () => {
+  if (controls) controls.enabled = true;
+}, true);
+renderer.domElement.addEventListener('click', (e) => {
+  const interactive = e.target && e.target.closest && e.target.closest('button, a, input, textarea, select, label');
+  if (interactive) e.stopPropagation();
+}, true);
 				controls.addEventListener('change', render);
 
 
