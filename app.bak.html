@@ -257,6 +257,7 @@
     <button id="sphere">SPHERE</button>
     <button id="helix">HELIX</button>
     <button id="grid">GRID</button>
+	<button id="tetra">TETRA</button>
   </div>
 
 
@@ -291,8 +292,8 @@
 					console.error("startThreeApp not ready yet");
 				}
 				} catch (e) {
-				console.error("App init failed:", e);
-				alert("App init failed. Check console.");
+				console.error("Sheets fetch failed:", e);
+				alert("Sheets fetch failed. Check console.");
 				}
 			}
 			});
@@ -465,7 +466,7 @@
 			let sheetRows = [];
 
 			const objects = [];
-			const targets = { table: [], sphere: [], helix: [], grid: [] };
+			const targets = { table: [], sphere: [], helix: [], grid: [], tetra: [] };
 
 			window.startThreeApp = function (rows) {
 			console.log("Rows passed into app:", rows);
@@ -595,25 +596,29 @@
 
 				targets.helix = [];
 
-				for ( let i = 0, l = objects.length; i < l; i ++ ) {
+				const radius = 900;
+				const separation = 60;   // vertical spacing
+				const turns = objects.length / 2;
 
-				const isLeft = ( i % 2 === 0 );
-				const theta = i * 0.35 + ( isLeft ? 0 : Math.PI );
-				const y = - ( i * 8 ) + 450;
+				for (let i = 0; i < objects.length; i++) {
+
+				const strand = i % 2; // 0 or 1
+				const index = Math.floor(i / 2);
+
+				const theta = index * 0.35 + (strand * Math.PI);
+				const y = -(index * separation) + 800;
 
 				const object = new THREE.Object3D();
+				object.position.set(
+					radius * Math.cos(theta),
+					y,
+					radius * Math.sin(theta)
+				);
 
-				object.position.setFromCylindricalCoords( 900, theta, y );
-
-				vector.x = object.position.x * 2;
-				vector.y = object.position.y;
-				vector.z = object.position.z * 2;
-
-				object.lookAt( vector );
-
-				targets.helix.push( object );
-
+				targets.helix.push(object);
 				}
+
+
 
 
 				// grid (5 × 4 × 10)
@@ -639,48 +644,88 @@
 				targets.grid.push( object );
 
 				}
+				
+				
+				// TETRA
+				// ===== TETRAHEDRON (exact THREE.TetrahedronGeometry faces) =====
+				// --- TETRA (4-face pyramid) layout: distribute on 4 faces + layered shells ---
+				targets.tetra = [];
+
+				const size = 900;         // overall tetra size
+				const layerGap = 140;     // distance between shells (prevents overlap)
+				const jitter = 25;        // small randomness so cards don't sit on same line
+
+				// Tetrahedron vertices (centered)
+				const V = [
+				new THREE.Vector3( 1,  1,  1),
+				new THREE.Vector3( 1, -1, -1),
+				new THREE.Vector3(-1,  1, -1),
+				new THREE.Vector3(-1, -1,  1)
+				].map(v => v.normalize().multiplyScalar(size));
+
+				// 4 triangular faces (indices into V)
+				const faces = [
+				[0, 1, 2],
+				[0, 1, 3],
+				[0, 2, 3],
+				[1, 2, 3]
+				];
+
+				// helper: random point on triangle using barycentric coords
+				function randomPointOnTriangle(a, b, c) {
+				let r1 = Math.random();
+				let r2 = Math.random();
+				// sqrt trick -> uniform distribution on triangle
+				const sr1 = Math.sqrt(r1);
+				const u = 1 - sr1;
+				const v = sr1 * (1 - r2);
+				const w = sr1 * r2;
+
+				return new THREE.Vector3()
+					.addScaledVector(a, u)
+					.addScaledVector(b, v)
+					.addScaledVector(c, w);
+				}
+
+				// Build target positions
+				for (let i = 0; i < objects.length; i++) {
+				const obj = new THREE.Object3D();
+
+				const faceId = i % 4;
+				const layer = Math.floor(i / 4);
+
+				const [ia, ib, ic] = faces[faceId];
+				const a = V[ia], b = V[ib], c = V[ic];
+
+				// point on face
+				const p = randomPointOnTriangle(a, b, c);
+
+				// face normal (outward)
+				const n = new THREE.Vector3()
+					.crossVectors(
+					new THREE.Vector3().subVectors(b, a),
+					new THREE.Vector3().subVectors(c, a)
+					)
+					.normalize();
+
+				// push outward by layer to avoid overlap
+				p.addScaledVector(n, layer * layerGap);
+
+				// tiny jitter so it doesn't look like stripes
+				p.x += (Math.random() - 0.5) * jitter;
+				p.y += (Math.random() - 0.5) * jitter;
+				p.z += (Math.random() - 0.5) * jitter;
+
+				obj.position.copy(p);
+
+				// make cards face outward (nice look)
+				obj.lookAt(p.clone().add(n));
+
+				targets.tetra.push(obj);
+				}
 
 
-				//
 
-				renderer = new CSS3DRenderer();
-				renderer.setSize( window.innerWidth, window.innerHeight );
-				document.getElementById( 'container' ).appendChild( renderer.domElement );
-
-				//
-
-				controls = new TrackballControls( camera, renderer.domElement );
-				controls.minDistance = 500;
-				controls.maxDistance = 6000;
-				controls.addEventListener( 'change', render );
-
-				const buttonTable = document.getElementById( 'table' );
-				buttonTable.addEventListener( 'click', function () {
-
-					transform( targets.table, 2000 );
-
-				} );
-
-				const buttonSphere = document.getElementById( 'sphere' );
-				buttonSphere.addEventListener( 'click', function () {
-
-					transform( targets.sphere, 2000 );
-
-				} );
-
-				const buttonHelix = document.getElementById( 'helix' );
-				buttonHelix.addEventListener( 'click', function () {
-
-					transform( targets.helix, 2000 );
-
-				} );
-
-				const buttonGrid = document.getElementById( 'grid' );
-				buttonGrid.addEventListener( 'click', function () {
-
-					transform( targets.grid, 2000 );
-
-				} );
 
 				transform( targets.table, 2000 );
 
@@ -720,16 +765,14 @@
 
 			function onWindowResize() {
 
-	if ( !camera || !renderer ) return;
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
 
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
 
-	renderer.setSize( window.innerWidth, window.innerHeight );
+				render();
 
-	render();
-
-}
+			}
 
 			function animate() {
 
@@ -743,11 +786,9 @@
 
 			function render() {
 
-	if ( !renderer || !scene || !camera ) return;
+				renderer.render( scene, camera );
 
-	renderer.render( scene, camera );
-
-}
+			}
 
 		</script>
 	
