@@ -776,20 +776,18 @@
 			}
 
 			function animate() {
+			requestAnimationFrame(animate);
 
-				requestAnimationFrame( animate );
+			TWEEN.update();
 
-				TWEEN.update();
-
-				controls.update();
-
+			if (controls) controls.update();   // avoid crash if init didn't finish
 			}
 
 			function render() {
-
-				renderer.render( scene, camera );
-
+			if (!renderer || !scene || !camera) return;  // <-- fixes "renderer is undefined"
+			renderer.render(scene, camera);
 			}
+
 
 		</script>
 	
