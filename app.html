@@ -597,7 +597,7 @@
 				targets.helix = [];
 
 				const radius = 900;
-				const separation = 160;   // vertical spacing
+				const separation = 60;   // vertical spacing
 				const turns = objects.length / 2;
 
 				for (let i = 0; i < objects.length; i++) {
@@ -648,74 +648,82 @@
 				
 				// TETRA
 				// ===== TETRAHEDRON (exact THREE.TetrahedronGeometry faces) =====
+				// --- TETRA (4-face pyramid) layout: distribute on 4 faces + layered shells ---
 				targets.tetra = [];
 
-				const geo = new THREE.TetrahedronGeometry(600);
-				const verts = geo.attributes.position.array;
+				const size = 900;         // overall tetra size
+				const layerGap = 140;     // distance between shells (prevents overlap)
+				const jitter = 25;        // small randomness so cards don't sit on same line
 
-				for (let i = 0; i < objects.length; i++) {
-				const object = new THREE.Object3D();
+				// Tetrahedron vertices (centered)
+				const V = [
+				new THREE.Vector3( 1,  1,  1),
+				new THREE.Vector3( 1, -1, -1),
+				new THREE.Vector3(-1,  1, -1),
+				new THREE.Vector3(-1, -1,  1)
+				].map(v => v.normalize().multiplyScalar(size));
 
-				const v = (i % 4) * 3;
-				object.position.set(
-					verts[v],
-					verts[v + 1],
-					verts[v + 2]
-				);
+				// 4 triangular faces (indices into V)
+				const faces = [
+				[0, 1, 2],
+				[0, 1, 3],
+				[0, 2, 3],
+				[1, 2, 3]
+				];
 
-				// stack layers to avoid overlap
-				object.position.multiplyScalar(1 + Math.floor(i / 4) * 0.4);
+				// helper: random point on triangle using barycentric coords
+				function randomPointOnTriangle(a, b, c) {
+				let r1 = Math.random();
+				let r2 = Math.random();
+				// sqrt trick -> uniform distribution on triangle
+				const sr1 = Math.sqrt(r1);
+				const u = 1 - sr1;
+				const v = sr1 * (1 - r2);
+				const w = sr1 * r2;
 
-				targets.tetra.push(object);
+				return new THREE.Vector3()
+					.addScaledVector(a, u)
+					.addScaledVector(b, v)
+					.addScaledVector(c, w);
 				}
-				
 
+				// Build target positions
+				for (let i = 0; i < objects.length; i++) {
+				const obj = new THREE.Object3D();
 
+				const faceId = i % 4;
+				const layer = Math.floor(i / 4);
 
-				//
+				const [ia, ib, ic] = faces[faceId];
+				const a = V[ia], b = V[ib], c = V[ic];
 
-				renderer = new CSS3DRenderer();
-				renderer.setSize( window.innerWidth, window.innerHeight );
-				document.getElementById( 'container' ).appendChild( renderer.domElement );
+				// point on face
+				const p = randomPointOnTriangle(a, b, c);
 
-				//
+				// face normal (outward)
+				const n = new THREE.Vector3()
+					.crossVectors(
+					new THREE.Vector3().subVectors(b, a),
+					new THREE.Vector3().subVectors(c, a)
+					)
+					.normalize();
 
-				controls = new TrackballControls( camera, renderer.domElement );
-				controls.minDistance = 500;
-				controls.maxDistance = 6000;
-				controls.addEventListener( 'change', render );
+				// push outward by layer to avoid overlap
+				p.addScaledVector(n, layer * layerGap);
 
-				const buttonTable = document.getElementById( 'table' );
-				buttonTable.addEventListener( 'click', function () {
+				// tiny jitter so it doesn't look like stripes
+				p.x += (Math.random() - 0.5) * jitter;
+				p.y += (Math.random() - 0.5) * jitter;
+				p.z += (Math.random() - 0.5) * jitter;
 
-					transform( targets.table, 2000 );
+				obj.position.copy(p);
 
-				} );
+				// make cards face outward (nice look)
+				obj.lookAt(p.clone().add(n));
 
-				const buttonSphere = document.getElementById( 'sphere' );
-				buttonSphere.addEventListener( 'click', function () {
+				targets.tetra.push(obj);
+				}
 
-					transform( targets.sphere, 2000 );
-
-				} );
-
-				const buttonHelix = document.getElementById( 'helix' );
-				buttonHelix.addEventListener( 'click', function () {
-
-					transform( targets.helix, 2000 );
-
-				} );
-
-				const buttonGrid = document.getElementById( 'grid' );
-				buttonGrid.addEventListener( 'click', function () {
-
-					transform( targets.grid, 2000 );
-
-				} );
-				const buttonTetra = document.getElementById('tetra');
-				buttonTetra.addEventListener('click', function () {
-					transform( targets.tetra, 2000 );
-				});
 
 
 
