@@ -596,38 +596,26 @@
 
 				targets.helix = [];
 
-				// Double-helix (DNA-like): two strands with clear separation
-				const radius = 900;
-				const separation = 80;   // vertical spacing between base-pairs (bigger = less cramped)
-				const twist = 0.38;      // radians per base-pair
-
 				for ( let i = 0, l = objects.length; i < l; i ++ ) {
 
-					const strand = i % 2;              // 0 or 1
-					const idx = Math.floor( i / 2 );   // base-pair index
+				const isLeft = ( i % 2 === 0 );
+				const theta = i * 0.35 + ( isLeft ? 0 : Math.PI );
+				const y = - ( i * 8 ) + 450;
 
-					const theta = idx * twist + ( strand * Math.PI );
-					const y = -( idx * separation ) + 900;
+				const object = new THREE.Object3D();
 
-					const object = new THREE.Object3D();
+				object.position.setFromCylindricalCoords( 900, theta, y );
 
-					object.position.set(
-						radius * Math.cos( theta ),
-						y,
-						radius * Math.sin( theta )
-					);
+				vector.x = object.position.x * 2;
+				vector.y = object.position.y;
+				vector.z = object.position.z * 2;
 
-					// Keep cards facing outward (not edge-on)
-					vector.set(
-						object.position.x * 2,
-						object.position.y,
-						object.position.z * 2
-					);
-					object.lookAt( vector );
+				object.lookAt( vector );
 
-					targets.helix.push( object );
+				targets.helix.push( object );
 
 				}
+
 
 				// grid (5 × 4 × 10)
 
@@ -673,43 +661,62 @@
 					[ v1, v2, v3 ]
 				];
 
-				function rand01(seed) {
-					let x = seed | 0;
-					x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
-					return ((x >>> 0) % 1000000) / 1000000;
+				// Van der Corput radical inverse base-2 (deterministic, spreads points evenly)
+				function radicalInverseVdC(i) {
+					i = (i << 16) | (i >>> 16);
+					i = ((i & 0x55555555) << 1) | ((i & 0xAAAAAAAA) >>> 1);
+					i = ((i & 0x33333333) << 2) | ((i & 0xCCCCCCCC) >>> 2);
+					i = ((i & 0x0F0F0F0F) << 4) | ((i & 0xF0F0F0F0) >>> 4);
+					i = ((i & 0x00FF00FF) << 8) | ((i & 0xFF00FF00) >>> 8);
+					return i * 2.3283064365386963e-10; // / 2^32
 				}
 
-				for ( let i = 0, l = objects.length; i < l; i ++ ) {
+				// Evenly split cards across 4 faces (difference at most 1)
+				const N = objects.length;
+				const base = Math.floor(N / 4);
+				const rem = N % 4;
 
-					const face = faces[ i % 4 ];
+				for ( let faceIdx = 0; faceIdx < 4; faceIdx ++ ) {
+
+					const count = base + (faceIdx < rem ? 1 : 0);
+					const face = faces[ faceIdx ];
 					const A = face[0], B = face[1], C = face[2];
 
-					const r1 = rand01( i * 9781 + 11 );
-					const r2 = rand01( i * 6271 + 97 );
-					const sr1 = Math.sqrt( r1 );
-					const u = 1 - sr1;
-					const v = sr1 * ( 1 - r2 );
-					const w = sr1 * r2;
+					for ( let k = 0; k < count; k ++ ) {
 
-					const pos = new THREE.Vector3()
-						.copy(A).multiplyScalar(u)
-						.add( new THREE.Vector3().copy(B).multiplyScalar(v) )
-						.add( new THREE.Vector3().copy(C).multiplyScalar(w) );
+						// Low-discrepancy sample in [0,1)^2
+						const r1 = (k + 0.5) / count;
+						const r2 = radicalInverseVdC(k);
 
-					const object = new THREE.Object3D();
-					object.position.copy( pos );
+						// Uniform point on triangle using barycentric coords
+						const sr1 = Math.sqrt( r1 );
+						const u = 1 - sr1;
+						const v = sr1 * ( 1 - r2 );
+						const w = sr1 * r2;
 
-					const normal = new THREE.Vector3()
-						.subVectors( B, A )
-						.cross( new THREE.Vector3().subVectors( C, A ) )
-						.normalize();
+						const pos = new THREE.Vector3()
+							.copy(A).multiplyScalar(u)
+							.add( new THREE.Vector3().copy(B).multiplyScalar(v) )
+							.add( new THREE.Vector3().copy(C).multiplyScalar(w) );
 
-					vector.copy( object.position ).addScaledVector( normal, 800 );
-					object.lookAt( vector );
+						const object = new THREE.Object3D();
+						object.position.copy( pos );
 
-					targets.tetra.push( object );
+						// Face normal (for orientation)
+						const normal = new THREE.Vector3()
+							.subVectors( B, A )
+							.cross( new THREE.Vector3().subVectors( C, A ) )
+							.normalize();
+
+						vector.copy( object.position ).addScaledVector( normal, 800 );
+						object.lookAt( vector );
+
+						targets.tetra.push( object );
+
+					}
 
 				}
+
 
 
 
@@ -729,7 +736,7 @@
 				const buttonTable = document.getElementById( 'table' );
 				buttonTable.addEventListener( 'click', function () {
 
-					transform( targets.helix, 2000 );
+					transform( targets.table, 2000 );
 
 				} );
 
