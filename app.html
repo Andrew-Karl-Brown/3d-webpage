@@ -651,15 +651,23 @@
 
 				targets.tetra = [];
 
-				// A clear 4-face pyramid: one apex + triangular base (4 faces total)
-				const baseY = -800;
-				const apexY = 1200;
-				const baseRadius = 1200; // size of base triangle
+				// A clear 4-face pyramid: one apex + triangular base (4 faces total).
+				// Rotated slightly so the 3D shape is obvious from the default camera view.
+				const qPyr = new THREE.Quaternion().setFromEuler( new THREE.Euler( 0.35, 0.60, 0.0 ) );
+
+				const baseY = -650;
+				const apexY = 1050;
+				const baseRadius = 950; // base triangle size
 
 				const b0 = new THREE.Vector3(  baseRadius, baseY, 0 );
 				const b1 = new THREE.Vector3( -baseRadius * 0.5, baseY,  baseRadius * Math.sqrt(3) * 0.5 );
 				const b2 = new THREE.Vector3( -baseRadius * 0.5, baseY, -baseRadius * Math.sqrt(3) * 0.5 );
 				const apex = new THREE.Vector3( 0, apexY, 0 );
+
+				b0.applyQuaternion(qPyr);
+				b1.applyQuaternion(qPyr);
+				b2.applyQuaternion(qPyr);
+				apex.applyQuaternion(qPyr);
 
 				const faces = [
 					[ apex, b0, b1 ],
@@ -668,23 +676,39 @@
 					[ b0, b1, b2 ] // base face
 				];
 
-				function radicalInverseVdC(i) {
-					i = (i << 16) | (i >>> 16);
-					i = ((i & 0x55555555) << 1) | ((i & 0xAAAAAAAA) >>> 1);
-					i = ((i & 0x33333333) << 2) | ((i & 0xCCCCCCCC) >>> 2);
-					i = ((i & 0x0F0F0F0F) << 4) | ((i & 0xF0F0F0F0) >>> 4);
-					i = ((i & 0x00FF00FF) << 8) | ((i & 0xFF00FF00) >>> 8);
-					return i * 2.3283064365386963e-10; // / 2^32
-				}
-
 				// Evenly split cards across 4 faces (difference at most 1)
 				const N = objects.length;
-				const baseCount = Math.floor(N / 4);
+				const per = Math.floor(N / 4);
 				const rem = N % 4;
+
+				function samplePointOnTriangleGrid(A, B, C, idx, count) {
+
+					// Grid-like distribution on the triangle (more "shape-like" than random scatter)
+					const n = Math.ceil( Math.sqrt( count ) );
+					const r = Math.floor( idx / n );
+					const c = idx % n;
+
+					let u = (r + 0.5) / n;
+					let v = (c + 0.5) / n;
+
+					// Fold into triangle (u + v <= 1)
+					if ( u + v > 1 ) {
+						u = 1 - u;
+						v = 1 - v;
+					}
+
+					const w = 1 - u - v;
+
+					return new THREE.Vector3()
+						.copy(A).multiplyScalar(w)
+						.add( new THREE.Vector3().copy(B).multiplyScalar(u) )
+						.add( new THREE.Vector3().copy(C).multiplyScalar(v) );
+
+				}
 
 				for ( let faceIdx = 0; faceIdx < 4; faceIdx ++ ) {
 
-					const count = baseCount + (faceIdx < rem ? 1 : 0);
+					const count = per + (faceIdx < rem ? 1 : 0);
 					const face = faces[ faceIdx ];
 					const A = face[0], B = face[1], C = face[2];
 
@@ -693,24 +717,18 @@
 						.cross( new THREE.Vector3().subVectors( C, A ) )
 						.normalize();
 
+					// Pull points slightly toward the face center so the pyramid silhouette is clean
+					const centroid = new THREE.Vector3()
+						.addVectors(A, B).add(C)
+						.multiplyScalar( 1 / 3 );
+
 					for ( let k = 0; k < count; k ++ ) {
 
-						// Low-discrepancy sample (spreads points evenly)
-						const r1 = (k + 0.5) / count;
-						const r2 = radicalInverseVdC(k);
+						const pos = samplePointOnTriangleGrid(A, B, C, k, count);
 
-						const sr1 = Math.sqrt( r1 );
-						const u = 1 - sr1;
-						const v = sr1 * ( 1 - r2 );
-						const w = sr1 * r2;
-
-						const pos = new THREE.Vector3()
-							.copy(A).multiplyScalar(u)
-							.add( new THREE.Vector3().copy(B).multiplyScalar(v) )
-							.add( new THREE.Vector3().copy(C).multiplyScalar(w) );
-
-						// push outward a bit so faces don't collapse visually
-						pos.addScaledVector( faceNormal, 40 );
+						// shrink toward centroid + push outward (prevents "wings" and makes faces readable)
+						pos.lerp( centroid, 0.18 );
+						pos.addScaledVector( faceNormal, 80 );
 
 						const object = new THREE.Object3D();
 						object.position.copy( pos );
