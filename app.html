@@ -598,24 +598,22 @@
 
 				for ( let i = 0, l = objects.length; i < l; i ++ ) {
 
-				const isLeft = ( i % 2 === 0 );
-				const theta = i * 0.35 + ( isLeft ? 0 : Math.PI );
-				const y = - ( i * 8 ) + 450;
+					const theta = i * 0.175 + Math.PI;
+					const y = - ( i * 8 ) + 450;
 
-				const object = new THREE.Object3D();
+					const object = new THREE.Object3D();
 
-				object.position.setFromCylindricalCoords( 900, theta, y );
+					object.position.setFromCylindricalCoords( 900, theta, y );
 
-				vector.x = object.position.x * 2;
-				vector.y = object.position.y;
-				vector.z = object.position.z * 2;
+					vector.x = object.position.x * 2;
+					vector.y = object.position.y;
+					vector.z = object.position.z * 2;
 
-				object.lookAt( vector );
+					object.lookAt( vector );
 
-				targets.helix.push( object );
+					targets.helix.push( object );
 
 				}
-
 
 				// grid (5 × 4 × 10)
 
@@ -646,13 +644,21 @@
 
 				targets.tetra = [];
 
+				// Regular tetrahedron centered at origin; rotate so all 4 faces are visible from the default camera
+				const qTetra = new THREE.Quaternion().setFromEuler( new THREE.Euler( 0.35, 0.60, 0.0 ) );
+
 				const v0 = new THREE.Vector3( 1,  1,  1 ).normalize();
 				const v1 = new THREE.Vector3( 1, -1, -1 ).normalize();
 				const v2 = new THREE.Vector3(-1,  1, -1 ).normalize();
 				const v3 = new THREE.Vector3(-1, -1,  1 ).normalize();
 
-				const R = 1200; // overall size
+				const R = 1400;
 				v0.multiplyScalar(R); v1.multiplyScalar(R); v2.multiplyScalar(R); v3.multiplyScalar(R);
+
+				v0.applyQuaternion(qTetra);
+				v1.applyQuaternion(qTetra);
+				v2.applyQuaternion(qTetra);
+				v3.applyQuaternion(qTetra);
 
 				const faces = [
 					[ v0, v1, v2 ],
@@ -661,7 +667,6 @@
 					[ v1, v2, v3 ]
 				];
 
-				// Van der Corput radical inverse base-2 (deterministic, spreads points evenly)
 				function radicalInverseVdC(i) {
 					i = (i << 16) | (i >>> 16);
 					i = ((i & 0x55555555) << 1) | ((i & 0xAAAAAAAA) >>> 1);
@@ -671,10 +676,9 @@
 					return i * 2.3283064365386963e-10; // / 2^32
 				}
 
-				// Evenly split cards across 4 faces (difference at most 1)
 				const N = objects.length;
 				const base = Math.floor(N / 4);
-				const rem = N % 4;
+				const rem  = N % 4;
 
 				for ( let faceIdx = 0; faceIdx < 4; faceIdx ++ ) {
 
@@ -682,13 +686,16 @@
 					const face = faces[ faceIdx ];
 					const A = face[0], B = face[1], C = face[2];
 
+					const faceNormal = new THREE.Vector3()
+						.subVectors( B, A )
+						.cross( new THREE.Vector3().subVectors( C, A ) )
+						.normalize();
+
 					for ( let k = 0; k < count; k ++ ) {
 
-						// Low-discrepancy sample in [0,1)^2
 						const r1 = (k + 0.5) / count;
 						const r2 = radicalInverseVdC(k);
 
-						// Uniform point on triangle using barycentric coords
 						const sr1 = Math.sqrt( r1 );
 						const u = 1 - sr1;
 						const v = sr1 * ( 1 - r2 );
@@ -699,16 +706,13 @@
 							.add( new THREE.Vector3().copy(B).multiplyScalar(v) )
 							.add( new THREE.Vector3().copy(C).multiplyScalar(w) );
 
+						// push outward slightly so faces don't visually collapse
+						pos.addScaledVector( faceNormal, 30 );
+
 						const object = new THREE.Object3D();
 						object.position.copy( pos );
 
-						// Face normal (for orientation)
-						const normal = new THREE.Vector3()
-							.subVectors( B, A )
-							.cross( new THREE.Vector3().subVectors( C, A ) )
-							.normalize();
-
-						vector.copy( object.position ).addScaledVector( normal, 800 );
+						vector.copy( object.position ).addScaledVector( faceNormal, 800 );
 						object.lookAt( vector );
 
 						targets.tetra.push( object );
