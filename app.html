@@ -596,24 +596,31 @@
 
 				targets.helix = [];
 
-				for ( let i = 0, l = objects.length; i < l; i ++ ) {
+				const radius = 900;
+				const separation = 60;   // vertical spacing
+				const turns = objects.length / 2;
 
-					const theta = i * 0.175 + Math.PI;
-					const y = - ( i * 8 ) + 450;
+				for (let i = 0; i < objects.length; i++) {
 
-					const object = new THREE.Object3D();
+				const strand = i % 2; // 0 or 1
+				const index = Math.floor(i / 2);
 
-					object.position.setFromCylindricalCoords( 900, theta, y );
+				const theta = index * 0.35 + (strand * Math.PI);
+				const y = -(index * separation) + 800;
 
-					vector.x = object.position.x * 2;
-					vector.y = object.position.y;
-					vector.z = object.position.z * 2;
+				const object = new THREE.Object3D();
+				object.position.set(
+					radius * Math.cos(theta),
+					y,
+					radius * Math.sin(theta)
+				);
 
-					object.lookAt( vector );
-
-					targets.helix.push( object );
-
+				targets.helix.push(object);
 				}
+
+
+				
+
 
 				// grid (5 × 4 × 10)
 
@@ -644,27 +651,21 @@
 
 				targets.tetra = [];
 
-				// Regular tetrahedron centered at origin; rotate so all 4 faces are visible from the default camera
-				const qTetra = new THREE.Quaternion().setFromEuler( new THREE.Euler( 0.35, 0.60, 0.0 ) );
+				// A clear 4-face pyramid: one apex + triangular base (4 faces total)
+				const baseY = -800;
+				const apexY = 1200;
+				const baseRadius = 1200; // size of base triangle
 
-				const v0 = new THREE.Vector3( 1,  1,  1 ).normalize();
-				const v1 = new THREE.Vector3( 1, -1, -1 ).normalize();
-				const v2 = new THREE.Vector3(-1,  1, -1 ).normalize();
-				const v3 = new THREE.Vector3(-1, -1,  1 ).normalize();
-
-				const R = 1400;
-				v0.multiplyScalar(R); v1.multiplyScalar(R); v2.multiplyScalar(R); v3.multiplyScalar(R);
-
-				v0.applyQuaternion(qTetra);
-				v1.applyQuaternion(qTetra);
-				v2.applyQuaternion(qTetra);
-				v3.applyQuaternion(qTetra);
+				const b0 = new THREE.Vector3(  baseRadius, baseY, 0 );
+				const b1 = new THREE.Vector3( -baseRadius * 0.5, baseY,  baseRadius * Math.sqrt(3) * 0.5 );
+				const b2 = new THREE.Vector3( -baseRadius * 0.5, baseY, -baseRadius * Math.sqrt(3) * 0.5 );
+				const apex = new THREE.Vector3( 0, apexY, 0 );
 
 				const faces = [
-					[ v0, v1, v2 ],
-					[ v0, v1, v3 ],
-					[ v0, v2, v3 ],
-					[ v1, v2, v3 ]
+					[ apex, b0, b1 ],
+					[ apex, b1, b2 ],
+					[ apex, b2, b0 ],
+					[ b0, b1, b2 ] // base face
 				];
 
 				function radicalInverseVdC(i) {
@@ -676,13 +677,14 @@
 					return i * 2.3283064365386963e-10; // / 2^32
 				}
 
+				// Evenly split cards across 4 faces (difference at most 1)
 				const N = objects.length;
-				const base = Math.floor(N / 4);
-				const rem  = N % 4;
+				const baseCount = Math.floor(N / 4);
+				const rem = N % 4;
 
 				for ( let faceIdx = 0; faceIdx < 4; faceIdx ++ ) {
 
-					const count = base + (faceIdx < rem ? 1 : 0);
+					const count = baseCount + (faceIdx < rem ? 1 : 0);
 					const face = faces[ faceIdx ];
 					const A = face[0], B = face[1], C = face[2];
 
@@ -693,6 +695,7 @@
 
 					for ( let k = 0; k < count; k ++ ) {
 
+						// Low-discrepancy sample (spreads points evenly)
 						const r1 = (k + 0.5) / count;
 						const r2 = radicalInverseVdC(k);
 
@@ -706,8 +709,8 @@
 							.add( new THREE.Vector3().copy(B).multiplyScalar(v) )
 							.add( new THREE.Vector3().copy(C).multiplyScalar(w) );
 
-						// push outward slightly so faces don't visually collapse
-						pos.addScaledVector( faceNormal, 30 );
+						// push outward a bit so faces don't collapse visually
+						pos.addScaledVector( faceNormal, 40 );
 
 						const object = new THREE.Object3D();
 						object.position.copy( pos );
